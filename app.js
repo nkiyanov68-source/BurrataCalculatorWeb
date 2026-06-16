@@ -309,9 +309,9 @@
       pr.rennetG = prodRound(pr.milkKg * settings.rennetPerMilk);
       pr.pieces = piecesPerParty;
       pr.fillingNoLossG = prodRound(piecesPerParty * fillingPerPieceG);
-      pr.bowls = Math.max(1, Math.ceil(pr.fillingNoLossG / bowlCapacityG));
-      pr.bowlLossG = prodRound(pr.bowls * settings.bowlLossG);
       pr.dispenserLossG = i === 1 ? prodRound(settings.dispenserLossG) : 0;
+      pr.bowls = calculateBowlCount(pr.fillingNoLossG, bowlCapacityG, settings.bowlLossG, pr.dispenserLossG);
+      pr.bowlLossG = prodRound(pr.bowls * settings.bowlLossG);
       pr.fillingWithLossG = prodRound(pr.fillingNoLossG + pr.bowlLossG + pr.dispenserLossG);
       pr.fillingPerBowlG = prodRound(pr.fillingWithLossG / pr.bowls);
       pr.stracciatellaG = prodRound(pr.fillingWithLossG / settings.stracciatellaDivisor);
@@ -407,7 +407,7 @@
       </div>
       <div class="section-title">Подробно по партиям</div>
       ${partyCards}
-      <div class="card note-card">Примечание: потери на тазы и дозатор учитываются внутри расчёта, но не выводятся отдельными строками, чтобы не перегружать экран. Округление по правилу 0,6 применяется как раньше. Молоко по партиям распределяется от общего количества так, чтобы сумма партий точно совпадала с общим молоком.</div>
+      <div class="card note-card">Примечание: потери на тазы и дозатор учитываются внутри расчёта, но не выводятся отдельными строками, чтобы не перегружать экран. Округление по правилу 0,6 применяется как раньше. Молоко по партиям распределяется от общего количества так, чтобы сумма партий точно совпадала с общим молоком. Количество тазов подбирается так, чтобы начинка с потерями в 1 тазу не превышала норму тары.</div>
     `;
   }
 
@@ -695,6 +695,28 @@
       }
     }
     return 'больше 55 см';
+  }
+
+  function calculateBowlCount(fillingNoLossG, bowlCapacityG, bowlLossG, dispenserLossG) {
+    if (bowlCapacityG <= 0) return 1;
+    let bowls;
+    if (bowlCapacityG > bowlLossG) {
+      bowls = Math.ceil((fillingNoLossG + dispenserLossG) / (bowlCapacityG - bowlLossG));
+    } else {
+      bowls = Math.ceil(fillingNoLossG / bowlCapacityG);
+    }
+    bowls = Math.max(1, bowls);
+
+    // Начинка с потерями в одном тазу должна быть строго не больше нормы:
+    // для классики — не больше 3000 г или значения из настроек,
+    // для трюфеля — не больше 2067 г или значения из настроек.
+    while (bowls < 10000) {
+      const totalWithLoss = prodRound(fillingNoLossG + prodRound(bowls * bowlLossG) + dispenserLossG);
+      const perBowl = prodRound(totalWithLoss / bowls);
+      if (perBowl <= bowlCapacityG + 0.0000001) return bowls;
+      bowls += 1;
+    }
+    return bowls;
   }
 
   function salsaJarForFilling(fillingPerBowlG) {
