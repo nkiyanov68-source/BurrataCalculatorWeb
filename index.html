@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2563EB" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Burrata" />
+  <title>Burrata Calculator</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-top">
+      <div class="brand">
+        <img src="icons/icon-72.png" alt="" class="brand-icon" />
+        <div>
+          <h1>Burrata Calculator</h1>
+          <p>Веб-версия v1.12.3</p>
+        </div>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Разделы калькулятора">
+      <button class="tab active" data-tab="burrata">● Буррата</button>
+      <button class="tab" data-tab="truffle">Трюфель</button>
+      <button class="tab" data-tab="chan">Чан</button>
+    </nav>
+
+    <main id="swipeArea" class="pages">
+      <section class="page active" id="page-burrata">
+        <div class="page-title">
+          <h2>Калькулятор бурраты</h2>
+          <p>Расчёт заявки, молока, начинки, тазов, страчителлы и сливок на таз.</p>
+        </div>
+
+        <div class="card input-card">
+          <label class="field-label" for="burrataKg">Заявка готовой бурраты, кг</label>
+          <p class="hint">Введите кг. Количество партий и все расчёты определяются автоматически.</p>
+          <input id="burrataKg" class="main-input" inputmode="decimal" placeholder="Например: 45 или 90,5" />
+          <button class="primary-btn" id="calcBurrata">Рассчитать</button>
+          <button class="secondary-btn hidden" id="copyBurrata">Скопировать расчёт</button>
+          <button class="secondary-btn" id="toggleSettings">Показать настройки формул</button>
+        </div>
+
+        <section class="settings-panel hidden" id="settingsPanel">
+          <div class="card">
+            <h3>Настройки формул</h3>
+            <p class="hint">Коэффициенты сохраняются на устройстве. Для трюфеля отдельные лимиты партий: по умолчанию меньше 20 кг — 1 партия, от 20 кг — 2 партии, от 30 кг — 3 партии.</p>
+            <div id="settingsFields"></div>
+            <div class="settings-actions">
+              <button class="primary-btn" id="saveSettings">Сохранить</button>
+              <button class="secondary-btn" id="resetSettings">Сбросить</button>
+            </div>
+          </div>
+        </section>
+
+        <div id="burrataResults" class="results"></div>
+      </section>
+
+      <section class="page" id="page-truffle">
+        <div class="page-title">
+          <h2>Калькулятор трюфеля</h2>
+          <p>Трюфель: меньше 20 кг — 1 партия, от 20 кг — 2 партии, от 30 кг — 3 партии.</p>
+        </div>
+
+        <div class="card input-card">
+          <label class="field-label" for="truffleKg">Заявка трюфельной бурраты, кг</label>
+          <p class="hint">По умолчанию: 95 г начинки на штуку, 2067 г на таз. Сальса подбирается на каждый таз: 20, 18 или 16 г.</p>
+          <input id="truffleKg" class="main-input" inputmode="decimal" placeholder="Например: 3,75 или 45" />
+          <button class="primary-btn" id="calcTruffle">Рассчитать трюфель</button>
+          <button class="secondary-btn hidden" id="copyTruffle">Скопировать расчёт трюфеля</button>
+          <button class="secondary-btn" id="openSettingsFromTruffle">Изменить настройки формул</button>
+        </div>
+
+        <div id="truffleResults" class="results"></div>
+      </section>
+
+      <section class="page" id="page-chan">
+        <div class="page-title">
+          <h2>Калькулятор чана</h2>
+          <p>Смахни вбок, чтобы перейти между бурратой, трюфелем и чаном.</p>
+        </div>
+
+        <div class="card input-card">
+          <h3>Заявки и чан</h3>
+          <p class="hint">Введите заявки классики и трюфеля. Партии считаются отдельно: классика + трюфель. Затем всё молоко делится равномерно по чанам, чтобы в одном чане не было больше лимита в кг.</p>
+          <label class="field-label" for="chanClassicKg">Заявка буррата классика, кг</label>
+          <input id="chanClassicKg" class="main-input" inputmode="decimal" placeholder="Например: 45" />
+          <label class="field-label top-space" for="chanTruffleKg">Заявка буррата трюфель, кг</label>
+          <input id="chanTruffleKg" class="main-input" inputmode="decimal" placeholder="Например: 15" />
+          <button class="primary-btn" id="calcChan">Рассчитать чан</button>
+          <button class="secondary-btn hidden" id="copyChan">Скопировать расчёт чана</button>
+          <button class="secondary-btn" id="openSettingsFromChan">Изменить плотность / лимонку / максимум чана</button>
+        </div>
+
+        <div id="chanResults" class="results"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>
