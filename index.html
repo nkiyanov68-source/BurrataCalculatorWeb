@@ -20,7 +20,7 @@
         <img src="icons/icon-72.png" alt="" class="brand-icon" />
         <div>
           <h1>Burrata Calculator</h1>
-          <p>Веб-версия v1.13.7</p>
+          <p>Веб-версия v1.13.8</p>
         </div>
       </div>
     </header>
@@ -99,13 +99,9 @@
         </div>
 
         <div class="card input-card">
-          <h3>Заявки и чан</h3>
-          <p class="hint">Введите заявки классики и трюфеля. Партии считаются отдельно: классика + трюфель. Затем всё молоко делится равномерно по чанам, чтобы в одном чане не было больше лимита в кг.</p>
-          <label class="field-label" for="chanClassicKg">Заявка буррата классика, кг</label>
-          <input id="chanClassicKg" class="main-input" inputmode="decimal" placeholder="Например: 45" />
-          <label class="field-label top-space" for="chanTruffleKg">Заявка буррата трюфель, кг</label>
-          <input id="chanTruffleKg" class="main-input" inputmode="decimal" placeholder="Например: 15" />
-          <button class="primary-btn" id="calcChan">Рассчитать чан</button>
+          <h3>Авторасчёт чана</h3>
+          <p class="hint">Чан теперь берёт данные из вкладок “Буррата” и “Трюфель”: заявку, ручные партии и коробки по партиям. Сначала заполните нужные поля в этих вкладках, затем нажмите расчёт здесь.</p>
+          <button class="primary-btn" id="calcChan">Рассчитать чан из бурраты и трюфеля</button>
           <button class="secondary-btn hidden" id="copyChan">Скопировать расчёт чана</button>
           <button class="secondary-btn" id="openSettingsFromChan">Изменить плотность / лимонку / максимум чана</button>
         </div>
