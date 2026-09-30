@@ -20,7 +20,7 @@
         <img src="icons/icon-72.png" alt="" class="brand-icon" />
         <div>
           <h1>Burrata Calculator</h1>
-          <p>Веб-версия v1.12.4</p>
+          <p>Веб-версия v1.13</p>
         </div>
       </div>
     </header>
@@ -40,8 +40,14 @@
 
         <div class="card input-card">
           <label class="field-label" for="burrataKg">Заявка готовой бурраты, кг</label>
-          <p class="hint">Введите кг. Количество партий и все расчёты определяются автоматически.</p>
-          <input id="burrataKg" class="main-input" inputmode="decimal" placeholder="Например: 45 или 90,5" />
+          <p class="hint">Введите кг. Можно вручную задать партии или указать коробки по партиям.</p>
+          <input id="burrataKg" class="main-input" inputmode="decimal" placeholder="Например: 107,25" />
+          <label class="field-label top-space" for="burrataManualParties">Количество партий вручную</label>
+          <p class="hint">Можно оставить пустым. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
+          <input id="burrataManualParties" class="main-input" inputmode="numeric" placeholder="Например: 4 или 5" />
+          <label class="field-label top-space" for="burrataBoxesByParty">Коробки по партиям</label>
+          <p class="hint">Пример: 20/41/41/41. В одной коробке 6 штук, ОТК в коробки не входит.</p>
+          <input id="burrataBoxesByParty" class="main-input" inputmode="text" placeholder="Например: 20/41/41/41" />
           <button class="primary-btn" id="calcBurrata">Рассчитать</button>
           <button class="secondary-btn hidden" id="copyBurrata">Скопировать расчёт</button>
           <button class="secondary-btn" id="toggleSettings">Показать настройки формул</button>
@@ -71,7 +77,13 @@
         <div class="card input-card">
           <label class="field-label" for="truffleKg">Заявка трюфельной бурраты, кг</label>
           <p class="hint">По умолчанию: 95 г начинки на штуку, 2067 г на таз. Сальса подбирается на каждый таз: 20, 18 или 16 г.</p>
-          <input id="truffleKg" class="main-input" inputmode="decimal" placeholder="Например: 3,75 или 45" />
+          <input id="truffleKg" class="main-input" inputmode="decimal" placeholder="Например: 16,5" />
+          <label class="field-label top-space" for="truffleManualParties">Количество партий вручную</label>
+          <p class="hint">Можно оставить пустым. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
+          <input id="truffleManualParties" class="main-input" inputmode="numeric" placeholder="Например: 1 или 2" />
+          <label class="field-label top-space" for="truffleBoxesByParty">Коробки по партиям</label>
+          <p class="hint">Пример: 22. В одной коробке 6 штук, ОТК в коробки не входит.</p>
+          <input id="truffleBoxesByParty" class="main-input" inputmode="text" placeholder="Например: 22" />
           <button class="primary-btn" id="calcTruffle">Рассчитать трюфель</button>
           <button class="secondary-btn hidden" id="copyTruffle">Скопировать расчёт трюфеля</button>
           <button class="secondary-btn" id="openSettingsFromTruffle">Изменить настройки формул</button>
