@@ -4,7 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_6';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_7';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_7';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_7';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -83,6 +85,18 @@
     }
   ];
 
+
+  const FORM_INPUT_IDS = [
+    'burrataKg',
+    'burrataManualParties',
+    'burrataBoxesByParty',
+    'truffleKg',
+    'truffleManualParties',
+    'truffleBoxesByParty',
+    'chanClassicKg',
+    'chanTruffleKg'
+  ];
+
   let settings = loadSettings();
   let currentTab = 'burrata';
   let lastBurrataText = '';
@@ -95,7 +109,8 @@
     buildSettingsFields();
     addStartMessages();
     bindEvents();
-    showTab('burrata');
+    const cachedTab = restoreCachedAppState();
+    showTab(cachedTab || 'burrata');
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -132,6 +147,11 @@
       toast('Настройки сброшены');
     });
 
+    FORM_INPUT_IDS.forEach((id) => {
+      const input = $(id);
+      if (input) input.addEventListener('input', saveFormState);
+    });
+
     let startX = 0;
     let startY = 0;
     const swipeArea = $('swipeArea');
@@ -156,6 +176,7 @@
 
   function showTab(tab) {
     currentTab = tab;
+    saveCurrentTab(tab);
     document.querySelectorAll('.tab').forEach((btn) => {
       const active = btn.dataset.tab === tab;
       btn.classList.toggle('active', active);
@@ -415,6 +436,7 @@
     if (isTruffle) lastTruffleText = plain;
     else lastBurrataText = plain;
     copyBtn.classList.remove('hidden');
+    saveResultState(isTruffle ? 'truffle' : 'burrata', results.innerHTML, plain);
   }
 
   function renderProductResults(data) {
@@ -708,6 +730,7 @@
       totalRennet
     });
     $('copyChan').classList.remove('hidden');
+    saveResultState('chan', results.innerHTML, lastChanText);
   }
 
   function renderChanResults(d) {
@@ -1025,6 +1048,75 @@
     sb += `Лимонная кислота всего: ${fmt(d.totalAcid)} г\n`;
     sb += `Фермент всего: ${fmt(d.totalRennet)} г\n`;
     return sb;
+  }
+
+
+  function restoreCachedAppState() {
+    const formState = loadJson(FORM_STORAGE_KEY, {});
+    FORM_INPUT_IDS.forEach((id) => {
+      const input = $(id);
+      if (input && formState[id] !== undefined) input.value = formState[id];
+    });
+
+    const resultState = loadJson(RESULT_STORAGE_KEY, {});
+    restoreOneResult('burrata', resultState.burrata, $('burrataResults'), $('copyBurrata'));
+    restoreOneResult('truffle', resultState.truffle, $('truffleResults'), $('copyTruffle'));
+    restoreOneResult('chan', resultState.chan, $('chanResults'), $('copyChan'));
+
+    return resultState.currentTab || formState.currentTab || 'burrata';
+  }
+
+  function restoreOneResult(tab, cached, resultsEl, copyBtn) {
+    if (!cached || !cached.html || !resultsEl) return;
+    resultsEl.innerHTML = cached.html;
+    if (tab === 'burrata') lastBurrataText = cached.plain || '';
+    if (tab === 'truffle') lastTruffleText = cached.plain || '';
+    if (tab === 'chan') lastChanText = cached.plain || '';
+    if (copyBtn && cached.plain) copyBtn.classList.remove('hidden');
+  }
+
+  function saveFormState() {
+    try {
+      const state = { currentTab };
+      FORM_INPUT_IDS.forEach((id) => {
+        const input = $(id);
+        if (input) state[id] = input.value || '';
+      });
+      localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  function saveResultState(tab, html, plain) {
+    try {
+      const state = loadJson(RESULT_STORAGE_KEY, {});
+      state.currentTab = tab;
+      state[tab] = {
+        html,
+        plain,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(state));
+      saveFormState();
+    } catch (e) {}
+  }
+
+  function saveCurrentTab(tab) {
+    try {
+      const resultState = loadJson(RESULT_STORAGE_KEY, {});
+      resultState.currentTab = tab;
+      localStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(resultState));
+      saveFormState();
+    } catch (e) {}
+  }
+
+  function loadJson(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      return JSON.parse(raw);
+    } catch (e) {
+      return fallback;
+    }
   }
 
   async function copyText(text, emptyMessage) {
