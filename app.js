@@ -4,7 +4,7 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_6';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -17,12 +17,12 @@
     truffleTwoPartyLimitKg: 30,
     milkPerPieceKg: 0.68,
     milkDensity: 1.03,
-    acidPerMilk1: 1.4,
-    acidPerMilk2: 1.4,
-    acidPerMilk3: 1.4,
-    acidPerMilk4: 1.4,
-    acidPerMilk5: 1.4,
-    acidPerMilk6: 1.4,
+    acidPerMilk1: 1.34,
+    acidPerMilk2: 1.34,
+    acidPerMilk3: 1.34,
+    acidPerMilk4: 1.34,
+    acidPerMilk5: 1.34,
+    acidPerMilk6: 1.34,
     rennetPerMilk: 0.2,
     maxChanMilkKg: 280,
     fillingPerPieceG: 93,
@@ -56,12 +56,12 @@
       fields: [
         ['milkPerPieceKg', 'Молоко: штук ×', '0,68'],
         ['milkDensity', 'Плотность молока, кг/л', '1,03'],
-        ['acidPerMilk1', 'Лимонная кислота 1 партия/чан: молоко кг ×', '1,4'],
-        ['acidPerMilk2', 'Лимонная кислота 2 партия/чан: молоко кг ×', '1,4'],
-        ['acidPerMilk3', 'Лимонная кислота 3 партия/чан: молоко кг ×', '1,4'],
-        ['acidPerMilk4', 'Лимонная кислота 4 партия/чан: молоко кг ×', '1,4'],
-        ['acidPerMilk5', 'Лимонная кислота 5 партия/чан: молоко кг ×', '1,4'],
-        ['acidPerMilk6', 'Лимонная кислота 6 партия/чан: молоко кг ×', '1,4'],
+        ['acidPerMilk1', 'Лимонная кислота 1 партия/чан: молоко кг ×', '1,34'],
+        ['acidPerMilk2', 'Лимонная кислота 2 партия/чан: молоко кг ×', '1,34'],
+        ['acidPerMilk3', 'Лимонная кислота 3 партия/чан: молоко кг ×', '1,34'],
+        ['acidPerMilk4', 'Лимонная кислота 4 партия/чан: молоко кг ×', '1,34'],
+        ['acidPerMilk5', 'Лимонная кислота 5 партия/чан: молоко кг ×', '1,34'],
+        ['acidPerMilk6', 'Лимонная кислота 6 партия/чан: молоко кг ×', '1,34'],
         ['rennetPerMilk', 'Фермент: молоко кг ×', '0,2'],
         ['maxChanMilkKg', 'Максимум на 1 чан, кг', '280']
       ]
