@@ -395,3 +395,32 @@ button, input { font: inherit; }
   margin-top: 4px;
   margin-bottom: 8px;
 }
+
+
+/* v1.13.11: лишние поля спрятаны в плюсики */
+.compact-toggle-btn,
+.optional-toggle {
+  margin-top: 8px;
+  background: #eef2ff;
+  color: var(--primary);
+}
+.filling-advanced,
+.optional-panel {
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+.advanced-settings-grid {
+  grid-template-columns: 1fr 1fr;
+}
+.advanced-settings-grid .field-label {
+  font-size: 13px;
+}
+.optional-panel .main-input {
+  margin-bottom: 4px;
+}
+@media (max-width: 390px) {
+  .advanced-settings-grid { grid-template-columns: 1fr; }
+}

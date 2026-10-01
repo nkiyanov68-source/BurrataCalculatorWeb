@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_10';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_10';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_10';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_12';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_12';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_12';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -71,13 +71,11 @@
     {
       title: 'Начинка и потери',
       fields: [
-        ['fillingPerPieceG', 'Классика начинка: штук партии ×, г', '93'],
         ['cagliataPerPieceG', 'Кальятта расплав: 1 шт ×, г', '40'],
         ['saltRate', 'Соль кальятта/страчителла: масса ×', '0,045'],
         ['creamSaltPerKgG', 'Соль в сливки: на 1 кг сливок, г', '10'],
-        ['bowlCapacityG', 'Классика 1 таз, г', '3000'],
-        ['truffleFillingPerPieceG', 'Трюфель начинка: штук партии ×, г', '95'],
-        ['truffleBowlCapacityG', 'Трюфель 1 таз, г', '2067'],
+        ['bowlCapacityG', 'Классика: максимум общего в 1 тазу, г', '3000'],
+        ['truffleBowlCapacityG', 'Трюфель: максимум общего в 1 тазу, г', '2067'],
         ['bowlLossG', 'Потери на 1 таз, г', '65'],
         ['dispenserLossG', 'Потери дозатора в 1 партии, г', '110'],
         ['stracciatellaDivisor', 'Страчителла: начинка /', '2']
@@ -90,11 +88,11 @@
     'fillingClassicKg',
     'fillingClassicParties',
     'fillingClassicExtraPieces',
-    'fillingClassicFillingG',
+    'fillingClassicBowlCapacityG',
     'fillingTruffleKg',
     'fillingTruffleParties',
     'fillingTruffleExtraPieces',
-    'fillingTruffleFillingG',
+    'fillingTruffleBowlCapacityG',
     'fillingOtkPerParty',
     'burrataKg',
     'burrataManualParties',
@@ -140,6 +138,10 @@
     $('calcBurrata').addEventListener('click', () => calculateProduct(false));
     $('calcTruffle').addEventListener('click', () => calculateProduct(true));
     $('calcChan').addEventListener('click', calculateChan);
+
+    $('toggleFillingAdvanced').addEventListener('click', () => toggleOptionalPanel('toggleFillingAdvanced', 'fillingAdvancedPanel', '+ Настройки начинки', '− Скрыть настройки начинки'));
+    $('toggleBurrataExtra').addEventListener('click', () => toggleOptionalPanel('toggleBurrataExtra', 'burrataExtraPanel', '+ Дополнительно', '− Скрыть дополнительно'));
+    $('toggleTruffleExtra').addEventListener('click', () => toggleOptionalPanel('toggleTruffleExtra', 'truffleExtraPanel', '+ Дополнительно', '− Скрыть дополнительно'));
 
     $('copyFilling').addEventListener('click', () => copyText(lastFillingText, 'Сначала сделайте расчёт начинки'));
     $('copyBurrata').addEventListener('click', () => copyText(lastBurrataText, 'Сначала сделайте расчёт бурраты'));
@@ -213,6 +215,14 @@
     if (tab === 'burrata') return 'Буррата';
     if (tab === 'truffle') return 'Трюфель';
     return 'Чан';
+  }
+
+  function toggleOptionalPanel(buttonId, panelId, closedText, openText) {
+    const panel = $(panelId);
+    const btn = $(buttonId);
+    const show = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !show);
+    btn.textContent = show ? openText : closedText;
   }
 
   function toggleSettings() {
@@ -299,7 +309,7 @@
   }
 
   function addStartMessages() {
-    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Страница считает только начинку: кальятту, начинку без потерь/с потерями, тазы, страчителлу и сливки. Соли здесь нет. Данные можно перенести в разделы Буррата и Трюфель.');
+    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Страница считает только начинку: кальятту, начинку без потерь/с потерями, тазы, страчителлу и сливки. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
     $('burrataResults').innerHTML = startCard('Введите заявку в кг. Можно вручную указать количество партий или коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
     $('truffleResults').innerHTML = startCard('Введите заявку трюфельной бурраты. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2067 г на таз.');
     $('chanResults').innerHTML = startCard('Чан берёт данные автоматически из вкладок Буррата и Трюфель: заявку, ручные партии и коробки по партиям. Заполните нужные поля в этих вкладках и нажмите Рассчитать чан.');
@@ -356,23 +366,23 @@
     if (classicExtraPieces === null) return;
     const truffleExtraPieces = readFillingOnlyNumber('fillingTruffleExtraPieces', 0, 'Трюфель: дополнительные штуки', { allowZero: true, integer: true });
     if (truffleExtraPieces === null) return;
-    const classicFillingPerPieceG = readFillingOnlyNumber('fillingClassicFillingG', settings.fillingPerPieceG, 'Классика: начинка на 1 шт');
-    if (classicFillingPerPieceG === null) return;
-    const truffleFillingPerPieceG = readFillingOnlyNumber('fillingTruffleFillingG', settings.truffleFillingPerPieceG, 'Трюфель: начинка на 1 шт');
-    if (truffleFillingPerPieceG === null) return;
+    const classicBowlCapacityG = readFillingOnlyNumber('fillingClassicBowlCapacityG', settings.bowlCapacityG, 'Классика: максимум общего в 1 тазу');
+    if (classicBowlCapacityG === null) return;
+    const truffleBowlCapacityG = readFillingOnlyNumber('fillingTruffleBowlCapacityG', settings.truffleBowlCapacityG, 'Трюфель: максимум общего в 1 тазу');
+    if (truffleBowlCapacityG === null) return;
 
     syncFillingToProductInputs(false);
 
     const classic = readFillingProduct(false, results, copyBtn, {
       extraPiecesPerPartyOverride: fillingOtkPerParty,
       manualAdditionalPieces: classicExtraPieces,
-      fillingPerPieceOverrideG: classicFillingPerPieceG
+      bowlCapacityOverrideG: classicBowlCapacityG
     });
     if (!classic) return;
     const truffle = readFillingProduct(true, results, copyBtn, {
       extraPiecesPerPartyOverride: fillingOtkPerParty,
       manualAdditionalPieces: truffleExtraPieces,
-      fillingPerPieceOverrideG: truffleFillingPerPieceG
+      bowlCapacityOverrideG: truffleBowlCapacityG
     });
     if (!truffle) return;
 
@@ -444,7 +454,7 @@
       manualAdditionalPieces: options.manualAdditionalPieces
     });
     const fillingPerPieceG = options.fillingPerPieceOverrideG || (isTruffle ? settings.truffleFillingPerPieceG : settings.fillingPerPieceG);
-    const bowlCapacityG = isTruffle ? settings.truffleBowlCapacityG : settings.bowlCapacityG;
+    const bowlCapacityG = options.bowlCapacityOverrideG || (isTruffle ? settings.truffleBowlCapacityG : settings.bowlCapacityG);
     const partyResults = [];
     let totalCagliataG = 0;
     let totalFillingNoLossG = 0;
@@ -553,7 +563,7 @@
       ${productCards}
       <div class="section-title">По партиям</div>
       ${partyCards}
-      <div class="card note-card">Эта главная страница считает только начинку. Коробки не учитываются, соль не выводится. ОТК берётся из поля “ОТК на партию”, а дополнительные штуки добавляются сверху.</div>
+      <div class="card note-card">Эта главная страница считает только начинку. Коробки не учитываются, соль не выводится. ОТК, дополнительные штуки и максимум общего количества в 1 тазу находятся в “+ Настройки начинки”.</div>
     `;
   }
 
