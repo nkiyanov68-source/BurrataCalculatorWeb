@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Burrata" />
-  <title>Burrata Calculator</title>
+  <title>Burrata Calculator v1.13.10</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
@@ -20,7 +20,7 @@
         <img src="icons/icon-72.png" alt="" class="brand-icon" />
         <div>
           <h1>Burrata Calculator</h1>
-          <p>Веб-версия v1.13.9</p>
+          <p>Веб-версия v1.13.10</p>
         </div>
       </div>
     </header>
@@ -50,6 +50,14 @@
               <input id="fillingClassicParties" class="main-input compact-input" inputmode="numeric" placeholder="4" />
             </div>
             <div>
+              <label class="field-label" for="fillingClassicExtraPieces">Доп. шт.</label>
+              <input id="fillingClassicExtraPieces" class="main-input compact-input" inputmode="numeric" placeholder="0" />
+            </div>
+            <div>
+              <label class="field-label" for="fillingClassicFillingG">Начинка/шт, г</label>
+              <input id="fillingClassicFillingG" class="main-input compact-input" inputmode="decimal" placeholder="93" />
+            </div>
+            <div>
               <label class="field-label" for="fillingTruffleKg">Трюфель, кг</label>
               <input id="fillingTruffleKg" class="main-input compact-input" inputmode="decimal" placeholder="16,5" />
             </div>
@@ -57,10 +65,25 @@
               <label class="field-label" for="fillingTruffleParties">Партии</label>
               <input id="fillingTruffleParties" class="main-input compact-input" inputmode="numeric" placeholder="1" />
             </div>
+            <div>
+              <label class="field-label" for="fillingTruffleExtraPieces">Доп. шт.</label>
+              <input id="fillingTruffleExtraPieces" class="main-input compact-input" inputmode="numeric" placeholder="0" />
+            </div>
+            <div>
+              <label class="field-label" for="fillingTruffleFillingG">Начинка/шт, г</label>
+              <input id="fillingTruffleFillingG" class="main-input compact-input" inputmode="decimal" placeholder="95" />
+            </div>
+          </div>
+          <div class="quick-grid mini-settings-grid">
+            <div>
+              <label class="field-label" for="fillingOtkPerParty">ОТК на партию, шт</label>
+              <input id="fillingOtkPerParty" class="main-input compact-input" inputmode="numeric" placeholder="5" />
+            </div>
           </div>
           <button class="primary-btn" id="calcFilling">Рассчитать начинку</button>
+          <button class="secondary-btn" id="projectFillingData">Перенести заявку и партии в разделы</button>
           <button class="secondary-btn hidden" id="copyFilling">Скопировать расчёт</button>
-          <p class="hint compact-hint">ОТК добавляется по партиям. Коробки здесь не нужны. Соль не выводится.</p>
+          <p class="hint compact-hint">Эти настройки действуют только на главной странице “Начинка”. Заявка, партии и доп. штуки автоматически подставляются в разделы Буррата/Трюфель, но там их можно изменить.</p>
         </div>
 
         <div id="fillingResults" class="results compact-results"></div>
@@ -82,6 +105,9 @@
           <label class="field-label top-space" for="burrataBoxesByParty">Коробки по партиям</label>
           <p class="hint">Пример: 20/41/41/41. В одной коробке 6 штук, ОТК в коробки не входит.</p>
           <input id="burrataBoxesByParty" class="main-input" inputmode="text" placeholder="Например: 20/41/41/41" />
+          <label class="field-label top-space" for="burrataExtraPieces">Дополнительные штуки</label>
+          <p class="hint">Добавляются сверх заявки и сверх ОТК. Можно оставить пустым.</p>
+          <input id="burrataExtraPieces" class="main-input" inputmode="numeric" placeholder="Например: 6" />
           <button class="primary-btn" id="calcBurrata">Рассчитать</button>
           <button class="secondary-btn hidden" id="copyBurrata">Скопировать расчёт</button>
           <button class="secondary-btn" id="toggleSettings">Показать настройки формул</button>
@@ -118,6 +144,9 @@
           <label class="field-label top-space" for="truffleBoxesByParty">Коробки по партиям</label>
           <p class="hint">Пример: 22. В одной коробке 6 штук, ОТК в коробки не входит.</p>
           <input id="truffleBoxesByParty" class="main-input" inputmode="text" placeholder="Например: 22" />
+          <label class="field-label top-space" for="truffleExtraPieces">Дополнительные штуки</label>
+          <p class="hint">Добавляются сверх заявки и сверх ОТК. Можно оставить пустым.</p>
+          <input id="truffleExtraPieces" class="main-input" inputmode="numeric" placeholder="Например: 6" />
           <button class="primary-btn" id="calcTruffle">Рассчитать трюфель</button>
           <button class="secondary-btn hidden" id="copyTruffle">Скопировать расчёт трюфеля</button>
           <button class="secondary-btn" id="openSettingsFromTruffle">Изменить настройки формул</button>

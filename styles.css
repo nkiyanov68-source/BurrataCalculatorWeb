@@ -388,3 +388,10 @@ button, input { font: inherit; }
   .quick-grid { grid-template-columns: 1fr 74px; }
   .compact-input { font-size: 17px; }
 }
+
+/* v1.13.10: настройки только для главной страницы начинки */
+.mini-settings-grid {
+  grid-template-columns: 1fr;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}

@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_9';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_9';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_9';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_10';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_10';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_10';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -89,14 +89,21 @@
   const FORM_INPUT_IDS = [
     'fillingClassicKg',
     'fillingClassicParties',
+    'fillingClassicExtraPieces',
+    'fillingClassicFillingG',
     'fillingTruffleKg',
     'fillingTruffleParties',
+    'fillingTruffleExtraPieces',
+    'fillingTruffleFillingG',
+    'fillingOtkPerParty',
     'burrataKg',
     'burrataManualParties',
     'burrataBoxesByParty',
+    'burrataExtraPieces',
     'truffleKg',
     'truffleManualParties',
-    'truffleBoxesByParty'
+    'truffleBoxesByParty',
+    'truffleExtraPieces'
   ];
 
   let settings = loadSettings();
@@ -126,6 +133,10 @@
     });
 
     $('calcFilling').addEventListener('click', calculateFilling);
+    $('projectFillingData').addEventListener('click', () => {
+      syncFillingToProductInputs(true);
+      toast('Заявка и партии перенесены в разделы');
+    });
     $('calcBurrata').addEventListener('click', () => calculateProduct(false));
     $('calcTruffle').addEventListener('click', () => calculateProduct(true));
     $('calcChan').addEventListener('click', calculateChan);
@@ -154,7 +165,10 @@
 
     FORM_INPUT_IDS.forEach((id) => {
       const input = $(id);
-      if (input) input.addEventListener('input', saveFormState);
+      if (input) input.addEventListener('input', () => {
+        saveFormState();
+        if (id.startsWith('filling')) syncFillingToProductInputs(false);
+      });
     });
 
     let startX = 0;
@@ -285,12 +299,47 @@
   }
 
   function addStartMessages() {
-    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Страница считает только начинку: кальятту, начинку с потерями, тазы, страчителлу и сливки. Соли здесь нет.');
+    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Страница считает только начинку: кальятту, начинку без потерь/с потерями, тазы, страчителлу и сливки. Соли здесь нет. Данные можно перенести в разделы Буррата и Трюфель.');
     $('burrataResults').innerHTML = startCard('Введите заявку в кг. Можно вручную указать количество партий или коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
     $('truffleResults').innerHTML = startCard('Введите заявку трюфельной бурраты. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2067 г на таз.');
     $('chanResults').innerHTML = startCard('Чан берёт данные автоматически из вкладок Буррата и Трюфель: заявку, ручные партии и коробки по партиям. Заполните нужные поля в этих вкладках и нажмите Рассчитать чан.');
   }
 
+
+  function syncFillingToProductInputs(onlyFilled) {
+    const pairs = [
+      ['fillingClassicKg', 'burrataKg'],
+      ['fillingClassicParties', 'burrataManualParties'],
+      ['fillingClassicExtraPieces', 'burrataExtraPieces'],
+      ['fillingTruffleKg', 'truffleKg'],
+      ['fillingTruffleParties', 'truffleManualParties'],
+      ['fillingTruffleExtraPieces', 'truffleExtraPieces']
+    ];
+    pairs.forEach(([fromId, toId]) => {
+      const from = $(fromId);
+      const to = $(toId);
+      if (!from || !to) return;
+      const value = String(from.value || '').trim();
+      if (onlyFilled && !value) return;
+      to.value = value;
+    });
+    saveFormState();
+  }
+
+  function readFillingOnlyNumber(id, fallback, label, opts = {}) {
+    const input = $(id);
+    const raw = String(input && input.value || '').trim().replace(',', '.');
+    if (!raw) return fallback;
+    const value = Number(raw);
+    const allowZero = !!opts.allowZero;
+    const integer = !!opts.integer;
+    if (!Number.isFinite(value) || value < 0 || (!allowZero && value === 0) || (integer && Math.round(value) !== value)) {
+      showError($('fillingResults'), `${label}: введите корректное число${integer ? ' целыми штуками' : ''}.`);
+      $('copyFilling').classList.add('hidden');
+      return null;
+    }
+    return value;
+  }
 
   function calculateFilling() {
     currentTab = 'filling';
@@ -301,9 +350,30 @@
 
     const results = $('fillingResults');
     const copyBtn = $('copyFilling');
-    const classic = readFillingProduct(false, results, copyBtn);
+    const fillingOtkPerParty = readFillingOnlyNumber('fillingOtkPerParty', settings.extraPiecesPerParty, 'ОТК на партию', { integer: true });
+    if (fillingOtkPerParty === null) return;
+    const classicExtraPieces = readFillingOnlyNumber('fillingClassicExtraPieces', 0, 'Классика: дополнительные штуки', { allowZero: true, integer: true });
+    if (classicExtraPieces === null) return;
+    const truffleExtraPieces = readFillingOnlyNumber('fillingTruffleExtraPieces', 0, 'Трюфель: дополнительные штуки', { allowZero: true, integer: true });
+    if (truffleExtraPieces === null) return;
+    const classicFillingPerPieceG = readFillingOnlyNumber('fillingClassicFillingG', settings.fillingPerPieceG, 'Классика: начинка на 1 шт');
+    if (classicFillingPerPieceG === null) return;
+    const truffleFillingPerPieceG = readFillingOnlyNumber('fillingTruffleFillingG', settings.truffleFillingPerPieceG, 'Трюфель: начинка на 1 шт');
+    if (truffleFillingPerPieceG === null) return;
+
+    syncFillingToProductInputs(false);
+
+    const classic = readFillingProduct(false, results, copyBtn, {
+      extraPiecesPerPartyOverride: fillingOtkPerParty,
+      manualAdditionalPieces: classicExtraPieces,
+      fillingPerPieceOverrideG: classicFillingPerPieceG
+    });
     if (!classic) return;
-    const truffle = readFillingProduct(true, results, copyBtn);
+    const truffle = readFillingProduct(true, results, copyBtn, {
+      extraPiecesPerPartyOverride: fillingOtkPerParty,
+      manualAdditionalPieces: truffleExtraPieces,
+      fillingPerPieceOverrideG: truffleFillingPerPieceG
+    });
     if (!truffle) return;
 
     if (!classic.active && !truffle.active) {
@@ -319,7 +389,9 @@
       basePieces: products.reduce((sum, p) => sum + p.basePieces, 0),
       extraPieces: products.reduce((sum, p) => sum + p.extraPieces, 0),
       totalPieces: products.reduce((sum, p) => sum + p.totalPieces, 0),
+      additionalPieces: products.reduce((sum, p) => sum + p.additionalPieces, 0),
       cagliataG: prodRound(products.reduce((sum, p) => sum + p.cagliataG, 0)),
+      fillingNoLossG: prodRound(products.reduce((sum, p) => sum + p.fillingNoLossG, 0)),
       fillingWithLossG: prodRound(products.reduce((sum, p) => sum + p.fillingWithLossG, 0)),
       bowls: products.reduce((sum, p) => sum + p.bowls, 0),
       stracciatellaG: prodRound(products.reduce((sum, p) => sum + p.stracciatellaG, 0)),
@@ -334,7 +406,7 @@
     saveResultState('filling', results.innerHTML, lastFillingText);
   }
 
-  function readFillingProduct(isTruffle, results, copyBtn) {
+  function readFillingProduct(isTruffle, results, copyBtn, options = {}) {
     const label = isTruffle ? 'Трюфель' : 'Классика';
     const kgInput = isTruffle ? $('fillingTruffleKg') : $('fillingClassicKg');
     const partiesInput = isTruffle ? $('fillingTruffleParties') : $('fillingClassicParties');
@@ -363,11 +435,19 @@
     const manualParties = parseManualParties(rawParties, results, copyBtn);
     if (manualParties === null) return null;
 
-    const plan = buildProductPlan({ requestKg, boxesByParty: [], manualParties, isTruffle });
-    const fillingPerPieceG = isTruffle ? settings.truffleFillingPerPieceG : settings.fillingPerPieceG;
+    const plan = buildProductPlan({
+      requestKg,
+      boxesByParty: [],
+      manualParties,
+      isTruffle,
+      extraPiecesPerPartyOverride: options.extraPiecesPerPartyOverride,
+      manualAdditionalPieces: options.manualAdditionalPieces
+    });
+    const fillingPerPieceG = options.fillingPerPieceOverrideG || (isTruffle ? settings.truffleFillingPerPieceG : settings.fillingPerPieceG);
     const bowlCapacityG = isTruffle ? settings.truffleBowlCapacityG : settings.bowlCapacityG;
     const partyResults = [];
     let totalCagliataG = 0;
+    let totalFillingNoLossG = 0;
     let totalFillingWithLossG = 0;
     let totalBowls = 0;
     let totalStracciatellaG = 0;
@@ -378,6 +458,7 @@
       const p = { index: i, isTruffle, label };
       p.basePieces = plan.basePiecesByParty[i - 1];
       p.extraPieces = plan.extraPiecesPerParty;
+      p.additionalPieces = plan.additionalPiecesByParty[i - 1] || 0;
       p.pieces = plan.piecesByParty[i - 1];
       p.cagliataG = prodRound(p.pieces * settings.cagliataPerPieceG);
       p.fillingNoLossG = prodRound(p.pieces * fillingPerPieceG);
@@ -399,6 +480,7 @@
         p.salsaTotalG = 0;
       }
       totalCagliataG += p.cagliataG;
+      totalFillingNoLossG += p.fillingNoLossG;
       totalFillingWithLossG += p.fillingWithLossG;
       totalBowls += p.bowls;
       totalStracciatellaG += p.stracciatellaG;
@@ -415,8 +497,10 @@
       parties: plan.parties,
       basePieces: plan.basePieces,
       extraPieces: plan.extraPieces,
+      additionalPieces: plan.additionalPieces,
       totalPieces: plan.totalPieces,
       cagliataG: prodRound(totalCagliataG),
+      fillingNoLossG: prodRound(totalFillingNoLossG),
       fillingWithLossG: prodRound(totalFillingWithLossG),
       bowls: totalBowls,
       stracciatellaG: prodRound(totalStracciatellaG),
@@ -435,8 +519,10 @@
       parties: 0,
       basePieces: 0,
       extraPieces: 0,
+      additionalPieces: 0,
       totalPieces: 0,
       cagliataG: 0,
+      fillingNoLossG: 0,
       fillingWithLossG: 0,
       bowls: 0,
       stracciatellaG: 0,
@@ -453,18 +539,21 @@
       ${headerCard('Итог начинки', `${fmt(data.totals.requestKg)} кг • ${fmt(data.totals.totalPieces)} шт.`, `${data.totals.parties} парт. • без коробок и без соли`)}
       <div class="section-title">Главные результаты</div>
       <div class="metrics-grid">
+        ${metric('Начинка всего без потерь', `${fmt(data.totals.fillingNoLossG)} г`, 'soft-green')}
         ${metric('Начинка с потерями', `${fmt(data.totals.fillingWithLossG)} г`, 'soft-orange')}
         ${metric('Тазов всего', `${data.totals.bowls}`, 'soft-blue')}
         ${metric('Страчителла всего', `${fmt(data.totals.stracciatellaG)} г`, 'soft-green')}
         ${metric('Сливки всего', `${fmt(data.totals.creamG)} г`, 'soft-orange')}
         ${metric('Кальятта расплав', `${fmt(data.totals.cagliataG)} г`, 'soft-green')}
-        ${data.totals.salsaG > 0 ? metric('Сальса трюфель', `${fmt(data.totals.salsaG)} г`, 'soft-orange') : metric('ОТК всего', `+${fmt(data.totals.extraPieces)} шт.`, 'soft-blue')}
+        ${metric('ОТК всего', `+${fmt(data.totals.extraPieces)} шт.`, 'soft-blue')}
+        ${data.totals.additionalPieces > 0 ? metric('Доп. штуки', `+${fmt(data.totals.additionalPieces)} шт.`, 'soft-blue') : ''}
+        ${data.totals.salsaG > 0 ? metric('Сальса трюфель', `${fmt(data.totals.salsaG)} г`, 'soft-orange') : ''}
       </div>
       <div class="section-title">Классика / трюфель</div>
       ${productCards}
       <div class="section-title">По партиям</div>
       ${partyCards}
-      <div class="card note-card">Эта главная страница считает только начинку. Коробки не учитываются, соль не выводится. ОТК добавляется по количеству партий: +${formatRaw(settings.extraPiecesPerParty)} шт. на партию.</div>
+      <div class="card note-card">Эта главная страница считает только начинку. Коробки не учитываются, соль не выводится. ОТК берётся из поля “ОТК на партию”, а дополнительные штуки добавляются сверху.</div>
     `;
   }
 
@@ -472,9 +561,10 @@
     if (!p.active) return `<div class="card">${line(p.label, 'не заполнено')}</div>`;
     return `
       <div class="card">
-        ${strongLine(p.label, `${fmt(p.requestKg)} кг • ${p.parties} парт. • ${fmt(p.totalPieces)} шт. с ОТК`, 'primary')}
-        ${line('Штук без ОТК / ОТК', `${fmt(p.basePieces)} / +${fmt(p.extraPieces)} шт.`)}
+        ${strongLine(p.label, `${fmt(p.requestKg)} кг • ${p.parties} парт. • ${fmt(p.totalPieces)} шт. всего`, 'primary')}
+        ${line('Штук без ОТК / ОТК / доп.', `${fmt(p.basePieces)} / +${fmt(p.extraPieces)} / +${fmt(p.additionalPieces)} шт.`)}
         ${line('Кальятта расплав', `${fmt(p.cagliataG)} г`)}
+        ${line('Начинка всего без потерь', `${fmt(p.fillingNoLossG)} г`)}
         ${strongLine('Начинка с потерями', `${fmt(p.fillingWithLossG)} г`, 'warning')}
         ${strongLine('Тазов', `${p.bowls}`, 'primary')}
         ${line('Страчителла / сливки', `${fmt(p.stracciatellaG)} г / ${fmt(p.creamG)} г`)}
@@ -488,9 +578,11 @@
     return product.partyResults.map((p) => `
       <div class="card">
         <h3 class="party-title">${escapeHtml(product.label)} • партия ${p.index}</h3>
-        ${line('Штук без ОТК / всего', `${fmt(p.basePieces)} / ${fmt(p.pieces)} шт.`)}
+        ${line('Штук без ОТК / ОТК / доп.', `${fmt(p.basePieces)} / +${fmt(p.extraPieces)} / +${fmt(p.additionalPieces)} шт.`)}
+        ${strongLine('Штук всего', `${fmt(p.pieces)} шт.`, 'success')}
         ${line('Кальятта расплав', `${fmt(p.cagliataG)} г`)}
         ${strongLine('Тазов', `${p.bowls}`, 'primary')}
+        ${line('Начинка всего без потерь', `${fmt(p.fillingNoLossG)} г`)}
         ${strongLine('Начинка с потерями', `${fmt(p.fillingWithLossG)} г`, 'warning')}
         ${line('Общее в 1 тазу', `${fmt(p.fillingPerBowlG)} г`)}
         ${line('Страчителла на 1 таз', `${fmt(p.stracciatellaPerBowlG)} г`)}
@@ -505,7 +597,10 @@
     sb += `Заявка всего: ${fmt(data.totals.requestKg)} кг\n`;
     sb += `Партии всего: ${data.totals.parties}\n`;
     sb += `Штук всего с ОТК: ${fmt(data.totals.totalPieces)} шт.\n`;
+    sb += `ОТК всего: +${fmt(data.totals.extraPieces)} шт.\n`;
+    if (data.totals.additionalPieces > 0) sb += `Дополнительные штуки всего: +${fmt(data.totals.additionalPieces)} шт.\n`;
     sb += `Кальятта расплав всего: ${fmt(data.totals.cagliataG)} г\n`;
+    sb += `Начинка всего без потерь: ${fmt(data.totals.fillingNoLossG)} г\n`;
     sb += `Начинка с потерями всего: ${fmt(data.totals.fillingWithLossG)} г\n`;
     sb += `Тазов всего: ${data.totals.bowls}\n`;
     sb += `Страчителла всего: ${fmt(data.totals.stracciatellaG)} г\n`;
@@ -518,8 +613,10 @@
       sb += `Партии: ${product.parties}\n`;
       sb += `Штук без ОТК: ${fmt(product.basePieces)} шт.\n`;
       sb += `ОТК: +${fmt(product.extraPieces)} шт.\n`;
+      if (product.additionalPieces > 0) sb += `Дополнительные штуки: +${fmt(product.additionalPieces)} шт.\n`;
       sb += `Штук всего: ${fmt(product.totalPieces)} шт.\n`;
       sb += `Кальятта расплав: ${fmt(product.cagliataG)} г\n`;
+      sb += `Начинка всего без потерь: ${fmt(product.fillingNoLossG)} г\n`;
       sb += `Начинка с потерями: ${fmt(product.fillingWithLossG)} г\n`;
       sb += `Тазов: ${product.bowls}\n`;
       sb += `Страчителла: ${fmt(product.stracciatellaG)} г\n`;
@@ -544,11 +641,13 @@
     const input = isTruffle ? $('truffleKg') : $('burrataKg');
     const manualPartiesInput = isTruffle ? $('truffleManualParties') : $('burrataManualParties');
     const boxesInput = isTruffle ? $('truffleBoxesByParty') : $('burrataBoxesByParty');
+    const extraPiecesInput = isTruffle ? $('truffleExtraPieces') : $('burrataExtraPieces');
     const results = isTruffle ? $('truffleResults') : $('burrataResults');
     const copyBtn = isTruffle ? $('copyTruffle') : $('copyBurrata');
     const raw = String(input.value || '').trim().replace(',', '.');
     const rawManualParties = String(manualPartiesInput.value || '').trim().replace(',', '.');
     const rawBoxes = String(boxesInput.value || '').trim();
+    const rawExtraPieces = String(extraPiecesInput && extraPiecesInput.value || '').trim().replace(',', '.');
 
     if (!raw && !rawBoxes) {
       showError(results, 'Введите заявку в кг или коробки по партиям. Пример коробок: 20/41/41/41.');
@@ -574,9 +673,12 @@
     const manualParties = parseManualParties(rawManualParties, results, copyBtn);
     if (manualParties === null) return;
 
+    const manualAdditionalPieces = parseAdditionalPieces(rawExtraPieces, results, copyBtn);
+    if (manualAdditionalPieces === null) return;
+
     const fillingPerPieceG = isTruffle ? settings.truffleFillingPerPieceG : settings.fillingPerPieceG;
     const bowlCapacityG = isTruffle ? settings.truffleBowlCapacityG : settings.bowlCapacityG;
-    const plan = buildProductPlan({ requestKg, boxesByParty, manualParties, isTruffle });
+    const plan = buildProductPlan({ requestKg, boxesByParty, manualParties, isTruffle, manualAdditionalPieces });
     requestKg = plan.requestKg;
 
     let totalRennet = 0;
@@ -599,6 +701,7 @@
       pr.boxes = plan.boxesByParty ? plan.boxesByParty[i - 1] : null;
       pr.basePieces = plan.basePiecesByParty[i - 1];
       pr.extraPieces = plan.extraPiecesPerParty;
+      pr.additionalPieces = plan.additionalPiecesByParty[i - 1] || 0;
       pr.milkKg = plan.milkByPartyKg[i - 1];
       pr.milkLiters = prodRound(pr.milkKg / settings.milkDensity);
       pr.chanCmText = rulerText(pr.milkLiters);
@@ -665,6 +768,7 @@
       parties: plan.parties,
       basePieces: plan.basePieces,
       extraPieces: plan.extraPieces,
+      additionalPieces: plan.additionalPieces,
       totalPieces: plan.totalPieces,
       requestWithOtkKg: plan.requestWithOtkKg,
       totalMilkKg: plan.totalMilkKg,
@@ -704,12 +808,14 @@
     const boxInfo = data.usedBoxes
       ? ` • Коробки: ${data.boxesByParty.map((v) => fmt(v)).join('/')} = ${fmt(data.boxesTotal)} кор. • ${formatRaw(settings.piecesPerBox)} шт. в коробке`
       : (data.manualPartiesUsed ? ' • Количество партий задано вручную' : '');
+    const extraInfo = data.additionalPieces > 0 ? ` • Доп. штуки: +${fmt(data.additionalPieces)} шт.` : '';
     return `
-      ${headerCard('Итог заявки', `${fmt(data.requestKg)} кг • ${fmt(data.totalPieces)} шт. • ${data.parties} парт.`, `Без ОТК: ${fmt(data.basePieces)} шт. • ОТК: +${fmt(data.extraPieces)} шт.${boxInfo}`)}
+      ${headerCard('Итог заявки', `${fmt(data.requestKg)} кг • ${fmt(data.totalPieces)} шт. • ${data.parties} парт.`, `Без ОТК: ${fmt(data.basePieces)} шт. • ОТК: +${fmt(data.extraPieces)} шт.${extraInfo}${boxInfo}`)}
       <div class="section-title">Главные результаты</div>
       <div class="metrics-grid">
         ${metric('Заявка', `${fmt(data.requestKg)} кг`, 'soft-green')}
         ${metric('Штук всего с ОТК', `${fmt(data.totalPieces)} шт.`, 'soft-green')}
+        ${data.additionalPieces > 0 ? metric('Доп. штуки', `+${fmt(data.additionalPieces)} шт.`, 'soft-blue') : ''}
         ${metric('Кальятта расплав', `${fmt(data.totalCagliataG)} г`, 'soft-orange')}
         ${metric('Молоко', `${fmt(data.totalMilkKg)} кг`, 'soft-blue')}
         ${metric('Начинка с потерями', `${fmt(data.totalFillingWithLosses)} г`, 'soft-orange')}
@@ -737,6 +843,7 @@
         ${p.boxes !== null ? line('Коробок в партии', `${fmt(p.boxes)} кор. × ${formatRaw(settings.piecesPerBox)} шт.`) : ''}
         ${line('Штук без ОТК', `${fmt(p.basePieces)} шт.`)}
         ${line('ОТК', `+${fmt(p.extraPieces)} шт.`)}
+        ${p.additionalPieces > 0 ? line('Дополнительные штуки', `+${fmt(p.additionalPieces)} шт.`) : ''}
         ${strongLine('Штук всего в партии', `${fmt(p.pieces)} шт.`, 'success')}
         ${strongLine('Кальятта расплав на партию', `${fmt(p.cagliataG)} г`, 'warning')}
         <div class="divider"></div>
@@ -809,7 +916,23 @@
     return value;
   }
 
-  function buildProductPlan({ requestKg, boxesByParty, manualParties, isTruffle }) {
+  function parseAdditionalPieces(raw, results, copyBtn) {
+    if (!raw) return 0;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0 || Math.round(value) !== value) {
+      showError(results, 'Дополнительные штуки должны быть целым числом: 0, 6, 12 и т.д.');
+      copyBtn.classList.add('hidden');
+      return null;
+    }
+    if (value > 10000) {
+      showError(results, 'Слишком много дополнительных штук. Проверьте значение.');
+      copyBtn.classList.add('hidden');
+      return null;
+    }
+    return value;
+  }
+
+  function buildProductPlan({ requestKg, boxesByParty, manualParties, isTruffle, extraPiecesPerPartyOverride, manualAdditionalPieces }) {
     const piecesPerBox = settings.piecesPerBox > 0 ? settings.piecesPerBox : 6;
     let parties;
     let basePiecesByParty;
@@ -830,10 +953,12 @@
       basePiecesByParty = splitWholeKgToParts(basePiecesFromKg, parties);
     }
 
-    const extraPiecesPerParty = piecesRound(settings.extraPiecesPerParty);
-    const piecesByParty = basePiecesByParty.map((p) => piecesRound(p + extraPiecesPerParty));
+    const extraPiecesPerParty = piecesRound(extraPiecesPerPartyOverride !== undefined && extraPiecesPerPartyOverride !== null ? extraPiecesPerPartyOverride : settings.extraPiecesPerParty);
+    const additionalPieces = piecesRound(manualAdditionalPieces || 0);
+    const additionalPiecesByParty = splitWholeKgToParts(additionalPieces, parties);
+    const piecesByParty = basePiecesByParty.map((p, idx) => piecesRound(p + extraPiecesPerParty + (additionalPiecesByParty[idx] || 0)));
     const basePieces = sumArray(basePiecesByParty);
-    const extraPieces = sumArray(piecesByParty) - basePieces;
+    const extraPieces = piecesRound(extraPiecesPerParty * parties);
     const totalPieces = sumArray(piecesByParty);
     const requestWithOtkKg = totalPieces / settings.requestToPieces;
     const totalMilkKg = milkRound(totalPieces * settings.milkPerPieceKg);
@@ -845,8 +970,10 @@
       basePiecesByParty,
       piecesByParty,
       extraPiecesPerParty,
+      additionalPiecesByParty,
       basePieces,
       extraPieces,
+      additionalPieces,
       totalPieces,
       requestWithOtkKg,
       totalMilkKg,
@@ -878,9 +1005,11 @@
     const input = isTruffle ? $('truffleKg') : $('burrataKg');
     const manualPartiesInput = isTruffle ? $('truffleManualParties') : $('burrataManualParties');
     const boxesInput = isTruffle ? $('truffleBoxesByParty') : $('burrataBoxesByParty');
+    const extraPiecesInput = isTruffle ? $('truffleExtraPieces') : $('burrataExtraPieces');
     const raw = String(input && input.value || '').trim().replace(',', '.');
     const rawManualParties = String(manualPartiesInput && manualPartiesInput.value || '').trim().replace(',', '.');
     const rawBoxes = String(boxesInput && boxesInput.value || '').trim();
+    const rawExtraPieces = String(extraPiecesInput && extraPiecesInput.value || '').trim().replace(',', '.');
 
     if (!raw && !rawBoxes) {
       return {
@@ -890,6 +1019,7 @@
         parties: 0,
         basePieces: 0,
         extraPieces: 0,
+        additionalPieces: 0,
         totalPieces: 0,
         totalMilkKg: 0,
         boxesByParty: null,
@@ -917,7 +1047,10 @@
     const manualParties = parseManualParties(rawManualParties, results, $('copyChan'));
     if (manualParties === null) return null;
 
-    const plan = buildProductPlan({ requestKg, boxesByParty, manualParties, isTruffle });
+    const manualAdditionalPieces = parseAdditionalPieces(rawExtraPieces, results, $('copyChan'));
+    if (manualAdditionalPieces === null) return null;
+
+    const plan = buildProductPlan({ requestKg, boxesByParty, manualParties, isTruffle, manualAdditionalPieces });
     return {
       active: true,
       label,
@@ -925,6 +1058,7 @@
       parties: plan.parties,
       basePieces: plan.basePieces,
       extraPieces: plan.extraPieces,
+      additionalPieces: plan.additionalPieces,
       totalPieces: plan.totalPieces,
       totalMilkKg: plan.totalMilkKg,
       boxesByParty: plan.boxesByParty,
@@ -961,6 +1095,7 @@
     const trufflePieces = trufflePlan.totalPieces;
     const basePieces = piecesRound(classicPlan.basePieces + trufflePlan.basePieces);
     const extraPieces = piecesRound(classicPlan.extraPieces + trufflePlan.extraPieces);
+    const additionalPieces = piecesRound((classicPlan.additionalPieces || 0) + (trufflePlan.additionalPieces || 0));
     const totalPieces = piecesRound(classicPieces + trufflePieces);
     const requestWithOtkKg = totalPieces / settings.requestToPieces;
     const totalMilkKg = milkRound(totalPieces * settings.milkPerPieceKg);
@@ -1001,6 +1136,7 @@
       trufflePieces,
       basePieces,
       extraPieces,
+      additionalPieces,
       totalPieces,
       requestWithOtkKg,
       boxesTotal,
@@ -1030,6 +1166,7 @@
       <div class="metrics-grid">
         ${metric('Заявка всего', `${fmt(d.totalRequestKg)} кг`, 'soft-green')}
         ${metric('Штук всего с ОТК', `${fmt(d.totalPieces)} шт.`, 'soft-green')}
+        ${d.additionalPieces > 0 ? metric('Доп. штуки всего', `+${fmt(d.additionalPieces)} шт.`, 'soft-blue') : ''}
         ${metric('Партии всего', `${d.parties}`, 'soft-blue')}
         ${d.boxesTotal > 0 ? metric('Коробки всего', `${fmt(d.boxesTotal)} кор.`, 'soft-orange') : ''}
         ${metric('Молоко всего', `${fmt(d.totalMilkKg)} кг`, 'soft-blue')}
@@ -1052,6 +1189,7 @@
         ${d.boxesTotal > 0 ? strongLine('Коробки всего', `${fmt(d.boxesTotal)} кор.`, 'warning') : ''}
         ${line(`Заявка × ${formatRaw(settings.requestToPieces)}`, `${fmt(d.basePieces)} шт.`)}
         ${line('Добавка по партиям', `+${fmt(d.extraPieces)} шт.`)}
+        ${d.additionalPieces > 0 ? line('Дополнительные штуки', `+${fmt(d.additionalPieces)} шт.`) : ''}
         ${strongLine('Штук всего', `${fmt(d.totalPieces)} шт.`, 'success')}
         ${strongLine('Молоко рассчитано', `${fmt(d.totalMilkKg)} кг`, 'primary')}
       </div>
@@ -1081,6 +1219,7 @@
       ${strongLine(name, `${fmt(plan.requestKg)} кг • ${plan.parties} парт.${boxes}${manual}`, 'primary')}
       ${line(`${name}: штук с ОТК`, `${fmt(plan.totalPieces)} шт.`)}
       ${line(`${name}: ОТК`, `+${fmt(plan.extraPieces)} шт.`)}
+      ${(plan.additionalPieces || 0) > 0 ? line(`${name}: доп. штуки`, `+${fmt(plan.additionalPieces)} шт.`) : ''}
     `;
   }
 
