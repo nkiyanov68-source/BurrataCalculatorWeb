@@ -73,7 +73,7 @@ button, input { font: inherit; }
   top: calc(64px + env(safe-area-inset-top));
   z-index: 9;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   padding: 6px 16px 10px;
   background: rgba(244, 246, 250, .94);
@@ -352,4 +352,39 @@ button, input { font: inherit; }
   .tab { font-size: 13px; padding: 11px 4px; }
   .metrics-grid { grid-template-columns: 1fr; }
   .header-card .big { font-size: 25px; }
+}
+
+
+/* v1.13.9: компактная главная страница расчёта начинки */
+.compact-title { padding-top: 2px; padding-bottom: 8px; }
+.compact-title h2 { font-size: 24px; }
+.compact-title p { font-size: 13px; margin-top: 5px; }
+.compact-card { padding: 12px; }
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 86px;
+  gap: 8px;
+  align-items: end;
+}
+.compact-input {
+  font-size: 19px;
+  padding: 10px 10px;
+  margin-bottom: 4px;
+}
+.compact-hint { margin: 9px 2px 0; font-size: 12px; }
+.compact-results .header-card { padding: 14px 13px; margin-bottom: 10px; }
+.compact-results .header-card .big { font-size: 24px; }
+.compact-results .metrics-grid { gap: 7px; margin-bottom: 10px; }
+.compact-results .metric { min-height: 74px; padding: 10px; }
+.compact-results .metric .value { font-size: 18px; }
+.compact-results .metric .label { font-size: 11px; }
+.compact-results .card { padding: 12px; margin-bottom: 10px; }
+.compact-results .section-title { font-size: 18px; margin-top: 12px; }
+@media (max-width: 390px) {
+  .tab { font-size: 12px; padding: 10px 3px; }
+  .tabs { gap: 5px; padding-left: 10px; padding-right: 10px; }
+}
+@media (max-width: 340px) {
+  .quick-grid { grid-template-columns: 1fr 74px; }
+  .compact-input { font-size: 17px; }
 }

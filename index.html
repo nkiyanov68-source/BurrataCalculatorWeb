@@ -20,19 +20,53 @@
         <img src="icons/icon-72.png" alt="" class="brand-icon" />
         <div>
           <h1>Burrata Calculator</h1>
-          <p>Веб-версия v1.13.8</p>
+          <p>Веб-версия v1.13.9</p>
         </div>
       </div>
     </header>
 
     <nav class="tabs" aria-label="Разделы калькулятора">
-      <button class="tab active" data-tab="burrata">● Буррата</button>
+      <button class="tab active" data-tab="filling">● Начинка</button>
+      <button class="tab" data-tab="burrata">Буррата</button>
       <button class="tab" data-tab="truffle">Трюфель</button>
       <button class="tab" data-tab="chan">Чан</button>
     </nav>
 
     <main id="swipeArea" class="pages">
-      <section class="page active" id="page-burrata">
+      <section class="page active" id="page-filling">
+        <div class="page-title compact-title">
+          <h2>Расчёт начинки</h2>
+          <p>Быстрый расчёт классики и трюфеля без коробок и без соли.</p>
+        </div>
+
+        <div class="card input-card compact-card">
+          <div class="quick-grid">
+            <div>
+              <label class="field-label" for="fillingClassicKg">Классика, кг</label>
+              <input id="fillingClassicKg" class="main-input compact-input" inputmode="decimal" placeholder="107,25" />
+            </div>
+            <div>
+              <label class="field-label" for="fillingClassicParties">Партии</label>
+              <input id="fillingClassicParties" class="main-input compact-input" inputmode="numeric" placeholder="4" />
+            </div>
+            <div>
+              <label class="field-label" for="fillingTruffleKg">Трюфель, кг</label>
+              <input id="fillingTruffleKg" class="main-input compact-input" inputmode="decimal" placeholder="16,5" />
+            </div>
+            <div>
+              <label class="field-label" for="fillingTruffleParties">Партии</label>
+              <input id="fillingTruffleParties" class="main-input compact-input" inputmode="numeric" placeholder="1" />
+            </div>
+          </div>
+          <button class="primary-btn" id="calcFilling">Рассчитать начинку</button>
+          <button class="secondary-btn hidden" id="copyFilling">Скопировать расчёт</button>
+          <p class="hint compact-hint">ОТК добавляется по партиям. Коробки здесь не нужны. Соль не выводится.</p>
+        </div>
+
+        <div id="fillingResults" class="results compact-results"></div>
+      </section>
+
+      <section class="page" id="page-burrata">
         <div class="page-title">
           <h2>Калькулятор бурраты</h2>
           <p>Расчёт заявки, молока, начинки, тазов, страчителлы и сливок на таз.</p>

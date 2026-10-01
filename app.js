@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_8';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_8';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_8';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_9';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_9';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_9';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -87,6 +87,10 @@
 
 
   const FORM_INPUT_IDS = [
+    'fillingClassicKg',
+    'fillingClassicParties',
+    'fillingTruffleKg',
+    'fillingTruffleParties',
     'burrataKg',
     'burrataManualParties',
     'burrataBoxesByParty',
@@ -97,6 +101,7 @@
 
   let settings = loadSettings();
   let currentTab = 'burrata';
+  let lastFillingText = '';
   let lastBurrataText = '';
   let lastTruffleText = '';
   let lastChanText = '';
@@ -108,7 +113,7 @@
     addStartMessages();
     bindEvents();
     const cachedTab = restoreCachedAppState();
-    showTab(cachedTab || 'burrata');
+    showTab(cachedTab || 'filling');
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -120,10 +125,12 @@
       btn.addEventListener('click', () => showTab(btn.dataset.tab));
     });
 
+    $('calcFilling').addEventListener('click', calculateFilling);
     $('calcBurrata').addEventListener('click', () => calculateProduct(false));
     $('calcTruffle').addEventListener('click', () => calculateProduct(true));
     $('calcChan').addEventListener('click', calculateChan);
 
+    $('copyFilling').addEventListener('click', () => copyText(lastFillingText, 'Сначала сделайте расчёт начинки'));
     $('copyBurrata').addEventListener('click', () => copyText(lastBurrataText, 'Сначала сделайте расчёт бурраты'));
     $('copyTruffle').addEventListener('click', () => copyText(lastTruffleText, 'Сначала сделайте расчёт трюфеля'));
     $('copyChan').addEventListener('click', () => copyText(lastChanText, 'Сначала сделайте расчёт чана'));
@@ -164,7 +171,7 @@
       const dx = e.changedTouches[0].clientX - startX;
       const dy = e.changedTouches[0].clientY - startY;
       if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-        const order = ['burrata', 'truffle', 'chan'];
+        const order = ['filling', 'burrata', 'truffle', 'chan'];
         let idx = order.indexOf(currentTab);
         if (dx < 0 && idx < order.length - 1) showTab(order[idx + 1]);
         if (dx > 0 && idx > 0) showTab(order[idx - 1]);
@@ -178,11 +185,20 @@
     document.querySelectorAll('.tab').forEach((btn) => {
       const active = btn.dataset.tab === tab;
       btn.classList.toggle('active', active);
-      btn.textContent = (active ? '● ' : '') + (btn.dataset.tab === 'burrata' ? 'Буррата' : btn.dataset.tab === 'truffle' ? 'Трюфель' : 'Чан');
+      btn.textContent = (active ? '● ' : '') + tabLabel(btn.dataset.tab);
     });
     document.querySelectorAll('.page').forEach((page) => page.classList.remove('active'));
     $(`page-${tab}`).classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+
+
+  function tabLabel(tab) {
+    if (tab === 'filling') return 'Начинка';
+    if (tab === 'burrata') return 'Буррата';
+    if (tab === 'truffle') return 'Трюфель';
+    return 'Чан';
   }
 
   function toggleSettings() {
@@ -262,16 +278,262 @@
   }
 
   function currentResultsEl() {
+    if (currentTab === 'filling') return $('fillingResults');
     if (currentTab === 'truffle') return $('truffleResults');
     if (currentTab === 'chan') return $('chanResults');
     return $('burrataResults');
   }
 
   function addStartMessages() {
+    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Страница считает только начинку: кальятту, начинку с потерями, тазы, страчителлу и сливки. Соли здесь нет.');
     $('burrataResults').innerHTML = startCard('Введите заявку в кг. Можно вручную указать количество партий или коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
     $('truffleResults').innerHTML = startCard('Введите заявку трюфельной бурраты. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2067 г на таз.');
     $('chanResults').innerHTML = startCard('Чан берёт данные автоматически из вкладок Буррата и Трюфель: заявку, ручные партии и коробки по партиям. Заполните нужные поля в этих вкладках и нажмите Рассчитать чан.');
   }
+
+
+  function calculateFilling() {
+    currentTab = 'filling';
+    const parsed = readSettingsFromFields(false);
+    if (!parsed) return;
+    settings = parsed;
+    saveSettings(settings);
+
+    const results = $('fillingResults');
+    const copyBtn = $('copyFilling');
+    const classic = readFillingProduct(false, results, copyBtn);
+    if (!classic) return;
+    const truffle = readFillingProduct(true, results, copyBtn);
+    if (!truffle) return;
+
+    if (!classic.active && !truffle.active) {
+      showError(results, 'Введите заявку в кг и количество партий хотя бы для классики или трюфеля.');
+      copyBtn.classList.add('hidden');
+      return;
+    }
+
+    const products = [classic, truffle].filter((p) => p.active);
+    const totals = {
+      requestKg: prodRound(products.reduce((sum, p) => sum + p.requestKg, 0)),
+      parties: products.reduce((sum, p) => sum + p.parties, 0),
+      basePieces: products.reduce((sum, p) => sum + p.basePieces, 0),
+      extraPieces: products.reduce((sum, p) => sum + p.extraPieces, 0),
+      totalPieces: products.reduce((sum, p) => sum + p.totalPieces, 0),
+      cagliataG: prodRound(products.reduce((sum, p) => sum + p.cagliataG, 0)),
+      fillingWithLossG: prodRound(products.reduce((sum, p) => sum + p.fillingWithLossG, 0)),
+      bowls: products.reduce((sum, p) => sum + p.bowls, 0),
+      stracciatellaG: prodRound(products.reduce((sum, p) => sum + p.stracciatellaG, 0)),
+      creamG: prodRound(products.reduce((sum, p) => sum + p.creamG, 0)),
+      salsaG: prodRound(products.reduce((sum, p) => sum + p.salsaG, 0))
+    };
+
+    const data = { classic, truffle, products, totals };
+    results.innerHTML = renderFillingResults(data);
+    lastFillingText = buildPlainFillingResult(data);
+    copyBtn.classList.remove('hidden');
+    saveResultState('filling', results.innerHTML, lastFillingText);
+  }
+
+  function readFillingProduct(isTruffle, results, copyBtn) {
+    const label = isTruffle ? 'Трюфель' : 'Классика';
+    const kgInput = isTruffle ? $('fillingTruffleKg') : $('fillingClassicKg');
+    const partiesInput = isTruffle ? $('fillingTruffleParties') : $('fillingClassicParties');
+    const rawKg = String(kgInput && kgInput.value || '').trim().replace(',', '.');
+    const rawParties = String(partiesInput && partiesInput.value || '').trim().replace(',', '.');
+
+    if (!rawKg && !rawParties) {
+      return makeEmptyFillingProduct(label);
+    }
+    if (!rawKg) {
+      showError(results, `${label}: введите заявку в кг.`);
+      copyBtn.classList.add('hidden');
+      return null;
+    }
+    const requestKg = Number(rawKg);
+    if (!Number.isFinite(requestKg) || requestKg <= 0) {
+      showError(results, `${label}: заявка должна быть числом больше 0. Пример: 45 или 45,5.`);
+      copyBtn.classList.add('hidden');
+      return null;
+    }
+    if (!rawParties) {
+      showError(results, `${label}: укажите количество партий.`);
+      copyBtn.classList.add('hidden');
+      return null;
+    }
+    const manualParties = parseManualParties(rawParties, results, copyBtn);
+    if (manualParties === null) return null;
+
+    const plan = buildProductPlan({ requestKg, boxesByParty: [], manualParties, isTruffle });
+    const fillingPerPieceG = isTruffle ? settings.truffleFillingPerPieceG : settings.fillingPerPieceG;
+    const bowlCapacityG = isTruffle ? settings.truffleBowlCapacityG : settings.bowlCapacityG;
+    const partyResults = [];
+    let totalCagliataG = 0;
+    let totalFillingWithLossG = 0;
+    let totalBowls = 0;
+    let totalStracciatellaG = 0;
+    let totalCreamG = 0;
+    let totalSalsaG = 0;
+
+    for (let i = 1; i <= plan.parties; i++) {
+      const p = { index: i, isTruffle, label };
+      p.basePieces = plan.basePiecesByParty[i - 1];
+      p.extraPieces = plan.extraPiecesPerParty;
+      p.pieces = plan.piecesByParty[i - 1];
+      p.cagliataG = prodRound(p.pieces * settings.cagliataPerPieceG);
+      p.fillingNoLossG = prodRound(p.pieces * fillingPerPieceG);
+      p.dispenserLossG = i === 1 ? prodRound(settings.dispenserLossG) : 0;
+      p.bowls = calculateBowlCount(p.fillingNoLossG, bowlCapacityG, settings.bowlLossG, p.dispenserLossG);
+      p.bowlLossG = prodRound(p.bowls * settings.bowlLossG);
+      p.fillingWithLossG = prodRound(p.fillingNoLossG + p.bowlLossG + p.dispenserLossG);
+      p.fillingPerBowlG = prodRound(p.fillingWithLossG / p.bowls);
+      p.stracciatellaG = prodRound(p.fillingWithLossG / settings.stracciatellaDivisor);
+      p.stracciatellaPerBowlG = prodRound(p.stracciatellaG / p.bowls);
+      p.creamSubtractionG = getCreamSubtraction(p.stracciatellaG);
+      p.creamG = prodRound(p.stracciatellaG - p.creamSubtractionG);
+      p.creamPerBowlG = prodRound(p.creamG / p.bowls);
+      if (isTruffle) {
+        p.salsaJarG = salsaJarForFilling(p.fillingPerBowlG);
+        p.salsaTotalG = prodRound(p.salsaJarG * p.bowls);
+      } else {
+        p.salsaJarG = 0;
+        p.salsaTotalG = 0;
+      }
+      totalCagliataG += p.cagliataG;
+      totalFillingWithLossG += p.fillingWithLossG;
+      totalBowls += p.bowls;
+      totalStracciatellaG += p.stracciatellaG;
+      totalCreamG += p.creamG;
+      totalSalsaG += p.salsaTotalG;
+      partyResults.push(p);
+    }
+
+    return {
+      active: true,
+      label,
+      isTruffle,
+      requestKg: plan.requestKg,
+      parties: plan.parties,
+      basePieces: plan.basePieces,
+      extraPieces: plan.extraPieces,
+      totalPieces: plan.totalPieces,
+      cagliataG: prodRound(totalCagliataG),
+      fillingWithLossG: prodRound(totalFillingWithLossG),
+      bowls: totalBowls,
+      stracciatellaG: prodRound(totalStracciatellaG),
+      creamG: prodRound(totalCreamG),
+      salsaG: prodRound(totalSalsaG),
+      partyResults
+    };
+  }
+
+  function makeEmptyFillingProduct(label) {
+    return {
+      active: false,
+      label,
+      isTruffle: label === 'Трюфель',
+      requestKg: 0,
+      parties: 0,
+      basePieces: 0,
+      extraPieces: 0,
+      totalPieces: 0,
+      cagliataG: 0,
+      fillingWithLossG: 0,
+      bowls: 0,
+      stracciatellaG: 0,
+      creamG: 0,
+      salsaG: 0,
+      partyResults: []
+    };
+  }
+
+  function renderFillingResults(data) {
+    const productCards = [data.classic, data.truffle].map((p) => renderFillingProductSummary(p)).join('');
+    const partyCards = data.products.map((p) => renderFillingPartyGroup(p)).join('');
+    return `
+      ${headerCard('Итог начинки', `${fmt(data.totals.requestKg)} кг • ${fmt(data.totals.totalPieces)} шт.`, `${data.totals.parties} парт. • без коробок и без соли`)}
+      <div class="section-title">Главные результаты</div>
+      <div class="metrics-grid">
+        ${metric('Начинка с потерями', `${fmt(data.totals.fillingWithLossG)} г`, 'soft-orange')}
+        ${metric('Тазов всего', `${data.totals.bowls}`, 'soft-blue')}
+        ${metric('Страчителла всего', `${fmt(data.totals.stracciatellaG)} г`, 'soft-green')}
+        ${metric('Сливки всего', `${fmt(data.totals.creamG)} г`, 'soft-orange')}
+        ${metric('Кальятта расплав', `${fmt(data.totals.cagliataG)} г`, 'soft-green')}
+        ${data.totals.salsaG > 0 ? metric('Сальса трюфель', `${fmt(data.totals.salsaG)} г`, 'soft-orange') : metric('ОТК всего', `+${fmt(data.totals.extraPieces)} шт.`, 'soft-blue')}
+      </div>
+      <div class="section-title">Классика / трюфель</div>
+      ${productCards}
+      <div class="section-title">По партиям</div>
+      ${partyCards}
+      <div class="card note-card">Эта главная страница считает только начинку. Коробки не учитываются, соль не выводится. ОТК добавляется по количеству партий: +${formatRaw(settings.extraPiecesPerParty)} шт. на партию.</div>
+    `;
+  }
+
+  function renderFillingProductSummary(p) {
+    if (!p.active) return `<div class="card">${line(p.label, 'не заполнено')}</div>`;
+    return `
+      <div class="card">
+        ${strongLine(p.label, `${fmt(p.requestKg)} кг • ${p.parties} парт. • ${fmt(p.totalPieces)} шт. с ОТК`, 'primary')}
+        ${line('Штук без ОТК / ОТК', `${fmt(p.basePieces)} / +${fmt(p.extraPieces)} шт.`)}
+        ${line('Кальятта расплав', `${fmt(p.cagliataG)} г`)}
+        ${strongLine('Начинка с потерями', `${fmt(p.fillingWithLossG)} г`, 'warning')}
+        ${strongLine('Тазов', `${p.bowls}`, 'primary')}
+        ${line('Страчителла / сливки', `${fmt(p.stracciatellaG)} г / ${fmt(p.creamG)} г`)}
+        ${p.salsaG > 0 ? line('Сальса', `${fmt(p.salsaG)} г`) : ''}
+      </div>
+    `;
+  }
+
+  function renderFillingPartyGroup(product) {
+    if (!product.active) return '';
+    return product.partyResults.map((p) => `
+      <div class="card">
+        <h3 class="party-title">${escapeHtml(product.label)} • партия ${p.index}</h3>
+        ${line('Штук без ОТК / всего', `${fmt(p.basePieces)} / ${fmt(p.pieces)} шт.`)}
+        ${line('Кальятта расплав', `${fmt(p.cagliataG)} г`)}
+        ${strongLine('Тазов', `${p.bowls}`, 'primary')}
+        ${strongLine('Начинка с потерями', `${fmt(p.fillingWithLossG)} г`, 'warning')}
+        ${line('Общее в 1 тазу', `${fmt(p.fillingPerBowlG)} г`)}
+        ${line('Страчителла на 1 таз', `${fmt(p.stracciatellaPerBowlG)} г`)}
+        ${line('Сливки на 1 таз', `${fmt(p.creamPerBowlG)} г`)}
+        ${p.isTruffle ? line('Сальса всего', `${fmt(p.salsaTotalG)} г`) : ''}
+      </div>
+    `).join('');
+  }
+
+  function buildPlainFillingResult(data) {
+    let sb = 'Расчёт начинки\n\n';
+    sb += `Заявка всего: ${fmt(data.totals.requestKg)} кг\n`;
+    sb += `Партии всего: ${data.totals.parties}\n`;
+    sb += `Штук всего с ОТК: ${fmt(data.totals.totalPieces)} шт.\n`;
+    sb += `Кальятта расплав всего: ${fmt(data.totals.cagliataG)} г\n`;
+    sb += `Начинка с потерями всего: ${fmt(data.totals.fillingWithLossG)} г\n`;
+    sb += `Тазов всего: ${data.totals.bowls}\n`;
+    sb += `Страчителла всего: ${fmt(data.totals.stracciatellaG)} г\n`;
+    sb += `Сливки всего: ${fmt(data.totals.creamG)} г\n`;
+    if (data.totals.salsaG > 0) sb += `Сальса трюфель всего: ${fmt(data.totals.salsaG)} г\n`;
+    sb += '\n';
+    data.products.forEach((product) => {
+      sb += `${product.label}\n`;
+      sb += `Заявка: ${fmt(product.requestKg)} кг\n`;
+      sb += `Партии: ${product.parties}\n`;
+      sb += `Штук без ОТК: ${fmt(product.basePieces)} шт.\n`;
+      sb += `ОТК: +${fmt(product.extraPieces)} шт.\n`;
+      sb += `Штук всего: ${fmt(product.totalPieces)} шт.\n`;
+      sb += `Кальятта расплав: ${fmt(product.cagliataG)} г\n`;
+      sb += `Начинка с потерями: ${fmt(product.fillingWithLossG)} г\n`;
+      sb += `Тазов: ${product.bowls}\n`;
+      sb += `Страчителла: ${fmt(product.stracciatellaG)} г\n`;
+      sb += `Сливки: ${fmt(product.creamG)} г\n`;
+      if (product.salsaG > 0) sb += `Сальса: ${fmt(product.salsaG)} г\n`;
+      product.partyResults.forEach((p) => {
+        sb += `  Партия ${p.index}: ${fmt(p.pieces)} шт., тазов ${p.bowls}, начинка ${fmt(p.fillingWithLossG)} г, в 1 тазу ${fmt(p.fillingPerBowlG)} г, страчителла/сливки на таз ${fmt(p.stracciatellaPerBowlG)} / ${fmt(p.creamPerBowlG)} г\n`;
+      });
+      sb += '\n';
+    });
+    sb += 'Без коробок и без соли.\n';
+    return sb;
+  }
+
 
   function calculateProduct(isTruffle) {
     const parsed = readSettingsFromFields(false);
@@ -1111,16 +1373,18 @@
     });
 
     const resultState = loadJson(RESULT_STORAGE_KEY, {});
+    restoreOneResult('filling', resultState.filling, $('fillingResults'), $('copyFilling'));
     restoreOneResult('burrata', resultState.burrata, $('burrataResults'), $('copyBurrata'));
     restoreOneResult('truffle', resultState.truffle, $('truffleResults'), $('copyTruffle'));
     restoreOneResult('chan', resultState.chan, $('chanResults'), $('copyChan'));
 
-    return resultState.currentTab || formState.currentTab || 'burrata';
+    return resultState.currentTab || formState.currentTab || 'filling';
   }
 
   function restoreOneResult(tab, cached, resultsEl, copyBtn) {
     if (!cached || !cached.html || !resultsEl) return;
     resultsEl.innerHTML = cached.html;
+    if (tab === 'filling') lastFillingText = cached.plain || '';
     if (tab === 'burrata') lastBurrataText = cached.plain || '';
     if (tab === 'truffle') lastTruffleText = cached.plain || '';
     if (tab === 'chan') lastChanText = cached.plain || '';
