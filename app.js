@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_14';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_14';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_14';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_15';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_15';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_15';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -313,7 +313,7 @@
   }
 
   function addStartMessages() {
-    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Страница считает только начинку: кальятту, начинку без потерь/с потерями, тазы, страчителлу и сливки. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
+    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Страница считает начинку и сразу обновляет раздел “Чан”. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
     $('burrataResults').innerHTML = startCard('Введите заявку в кг. Можно вручную указать количество партий или коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
     $('truffleResults').innerHTML = startCard('Введите заявку трюфельной бурраты. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2067 г на таз.');
     $('chanResults').innerHTML = startCard('Чан берёт данные автоматически из первого раздела “Начинка”: заявку, партии и дополнительные штуки. Заполните Начинку и нажмите Рассчитать чан. Коробки из разделов Буррата/Трюфель здесь не используются.');
@@ -431,6 +431,10 @@
     lastFillingText = buildPlainFillingResult(data);
     copyBtn.classList.remove('hidden');
     saveResultState('filling', results.innerHTML, lastFillingText);
+
+    // После расчёта начинки сразу обновляем раздел “Чан”,
+    // чтобы не нажимать отдельную кнопку во второй вкладке.
+    calculateChan({ keepCurrentTab: true });
   }
 
   function readFillingProduct(isTruffle, results, copyBtn, options = {}) {
@@ -584,7 +588,7 @@
       </details>
       <div class="section-title">По партиям</div>
       ${partyCards}
-      <div class="card note-card">Эта главная страница считает только начинку. Коробки не учитываются, соль не выводится. ОТК, дополнительные штуки и максимум общего количества в 1 тазу находятся в “+ Настройки начинки”.</div>
+      <div class="card note-card">Эта главная страница считает начинку и автоматически обновляет раздел “Чан”. Коробки не учитываются, соль не выводится. ОТК, дополнительные штуки и максимум общего количества в 1 тазу находятся в “+ Настройки начинки”.</div>
     `;
   }
 
@@ -1121,8 +1125,10 @@
     };
   }
 
-  function calculateChan() {
+  function calculateChan(options = {}) {
+    const previousTab = currentTab;
     currentTab = 'chan';
+    try {
     const parsed = readSettingsFromFields(false);
     if (!parsed) return;
     settings = parsed;
@@ -1211,6 +1217,10 @@
     lastChanText = buildPlainChanResult(data);
     $('copyChan').classList.remove('hidden');
     saveResultState('chan', results.innerHTML, lastChanText);
+    return true;
+    } finally {
+      if (options && options.keepCurrentTab) currentTab = previousTab;
+    }
   }
 
   function renderChanResults(d) {
