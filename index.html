@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Burrata" />
-  <title>Burrata Calculator v1.13.13</title>
+  <title>Burrata Calculator v1.13.14</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
@@ -20,16 +20,16 @@
         <img src="icons/icon-72.png" alt="" class="brand-icon" />
         <div>
           <h1>Burrata Calculator</h1>
-          <p>Веб-версия v1.13.13</p>
+          <p>Веб-версия v1.13.14</p>
         </div>
       </div>
     </header>
 
     <nav class="tabs" aria-label="Разделы калькулятора">
       <button class="tab active" data-tab="filling">● Начинка</button>
+      <button class="tab" data-tab="chan">Чан</button>
       <button class="tab" data-tab="burrata">Буррата</button>
       <button class="tab" data-tab="truffle">Трюфель</button>
-      <button class="tab" data-tab="chan">Чан</button>
     </nav>
 
     <main id="swipeArea" class="pages">
@@ -90,6 +90,23 @@
         </div>
 
         <div id="fillingResults" class="results compact-results"></div>
+      </section>
+
+      <section class="page" id="page-chan">
+        <div class="page-title">
+          <h2>Калькулятор чана</h2>
+          <p>Смахни вбок, чтобы перейти между бурратой, трюфелем и чаном.</p>
+        </div>
+
+        <div class="card input-card">
+          <h3>Авторасчёт чана</h3>
+          <p class="hint">Чан теперь берёт данные из первого раздела “Начинка”: заявку, партии и дополнительные штуки. Коробки из разделов Буррата/Трюфель здесь не используются.</p>
+          <button class="primary-btn" id="calcChan">Рассчитать чан из начинки</button>
+          <button class="secondary-btn hidden" id="copyChan">Скопировать расчёт чана</button>
+          <button class="secondary-btn" id="openSettingsFromChan">Изменить плотность / лимонку / максимум чана</button>
+        </div>
+
+        <div id="chanResults" class="results"></div>
       </section>
 
       <section class="page" id="page-burrata">
@@ -162,23 +179,6 @@
         </div>
 
         <div id="truffleResults" class="results"></div>
-      </section>
-
-      <section class="page" id="page-chan">
-        <div class="page-title">
-          <h2>Калькулятор чана</h2>
-          <p>Смахни вбок, чтобы перейти между бурратой, трюфелем и чаном.</p>
-        </div>
-
-        <div class="card input-card">
-          <h3>Авторасчёт чана</h3>
-          <p class="hint">Чан теперь берёт данные из вкладок “Буррата” и “Трюфель”: заявку, ручные партии и коробки по партиям. Сначала заполните нужные поля в этих вкладках, затем нажмите расчёт здесь.</p>
-          <button class="primary-btn" id="calcChan">Рассчитать чан из бурраты и трюфеля</button>
-          <button class="secondary-btn hidden" id="copyChan">Скопировать расчёт чана</button>
-          <button class="secondary-btn" id="openSettingsFromChan">Изменить плотность / лимонку / максимум чана</button>
-        </div>
-
-        <div id="chanResults" class="results"></div>
       </section>
     </main>
   </div>

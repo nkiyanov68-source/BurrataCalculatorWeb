@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_13';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_13';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_13';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_14';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_14';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_14';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -191,7 +191,7 @@
       const dx = e.changedTouches[0].clientX - startX;
       const dy = e.changedTouches[0].clientY - startY;
       if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-        const order = ['filling', 'burrata', 'truffle', 'chan'];
+        const order = ['filling', 'chan', 'burrata', 'truffle'];
         let idx = order.indexOf(currentTab);
         if (dx < 0 && idx < order.length - 1) showTab(order[idx + 1]);
         if (dx > 0 && idx > 0) showTab(order[idx - 1]);
@@ -316,7 +316,7 @@
     $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Страница считает только начинку: кальятту, начинку без потерь/с потерями, тазы, страчителлу и сливки. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
     $('burrataResults').innerHTML = startCard('Введите заявку в кг. Можно вручную указать количество партий или коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
     $('truffleResults').innerHTML = startCard('Введите заявку трюфельной бурраты. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2067 г на таз.');
-    $('chanResults').innerHTML = startCard('Чан берёт данные автоматически из вкладок Буррата и Трюфель: заявку, ручные партии и коробки по партиям. Заполните нужные поля в этих вкладках и нажмите Рассчитать чан.');
+    $('chanResults').innerHTML = startCard('Чан берёт данные автоматически из первого раздела “Начинка”: заявку, партии и дополнительные штуки. Заполните Начинку и нажмите Рассчитать чан. Коробки из разделов Буррата/Трюфель здесь не используются.');
   }
 
 
@@ -1031,18 +1031,31 @@
     return values.reduce((sum, v) => sum + v, 0);
   }
 
-  function readProductForChan(isTruffle, results) {
+  function readFillingNumberForChan(id, fallback, label, results, opts = {}) {
+    const input = $(id);
+    const raw = String(input && input.value || '').trim().replace(',', '.');
+    if (!raw) return fallback;
+    const value = Number(raw);
+    const allowZero = !!opts.allowZero;
+    const integer = !!opts.integer;
+    if (!Number.isFinite(value) || value < 0 || (!allowZero && value === 0) || (integer && Math.round(value) !== value)) {
+      showError(results, `${label}: введите корректное число${integer ? ' целыми штуками' : ''}.`);
+      $('copyChan').classList.add('hidden');
+      return null;
+    }
+    return value;
+  }
+
+  function readProductForChan(isTruffle, results, extraPiecesPerPartyOverride) {
     const label = isTruffle ? 'Трюфель' : 'Классика';
-    const input = isTruffle ? $('truffleKg') : $('burrataKg');
-    const manualPartiesInput = isTruffle ? $('truffleManualParties') : $('burrataManualParties');
-    const boxesInput = isTruffle ? $('truffleBoxesByParty') : $('burrataBoxesByParty');
-    const extraPiecesInput = isTruffle ? $('truffleExtraPieces') : $('burrataExtraPieces');
+    const input = isTruffle ? $('fillingTruffleKg') : $('fillingClassicKg');
+    const manualPartiesInput = isTruffle ? $('fillingTruffleParties') : $('fillingClassicParties');
+    const extraPiecesInput = isTruffle ? $('fillingTruffleExtraPieces') : $('fillingClassicExtraPieces');
     const raw = String(input && input.value || '').trim().replace(',', '.');
     const rawManualParties = String(manualPartiesInput && manualPartiesInput.value || '').trim().replace(',', '.');
-    const rawBoxes = String(boxesInput && boxesInput.value || '').trim();
     const rawExtraPieces = String(extraPiecesInput && extraPiecesInput.value || '').trim().replace(',', '.');
 
-    if (!raw && !rawBoxes) {
+    if (!raw && !rawManualParties) {
       return {
         active: false,
         label,
@@ -1060,28 +1073,37 @@
       };
     }
 
-    let requestKg = raw ? Number(raw) : Number.NaN;
-    if (raw && !Number.isFinite(requestKg)) {
-      showError(results, `${label}: заявка должна быть числом. Пример: 45 или 45,5.`);
+    if (!raw) {
+      showError(results, `${label}: в первом разделе “Начинка” введите заявку в кг.`);
       $('copyChan').classList.add('hidden');
       return null;
     }
-    if (raw && requestKg <= 0) {
-      showError(results, `${label}: заявка должна быть больше 0 кг.`);
+    const requestKg = Number(raw);
+    if (!Number.isFinite(requestKg) || requestKg <= 0) {
+      showError(results, `${label}: заявка в “Начинке” должна быть числом больше 0. Пример: 45 или 45,5.`);
       $('copyChan').classList.add('hidden');
       return null;
     }
 
-    const boxesByParty = parseBoxesByParty(rawBoxes, results, $('copyChan'));
-    if (boxesByParty === null) return null;
-
+    if (!rawManualParties) {
+      showError(results, `${label}: в первом разделе “Начинка” укажите количество партий.`);
+      $('copyChan').classList.add('hidden');
+      return null;
+    }
     const manualParties = parseManualParties(rawManualParties, results, $('copyChan'));
     if (manualParties === null) return null;
 
     const manualAdditionalPieces = parseAdditionalPieces(rawExtraPieces, results, $('copyChan'));
     if (manualAdditionalPieces === null) return null;
 
-    const plan = buildProductPlan({ requestKg, boxesByParty, manualParties, isTruffle, manualAdditionalPieces });
+    const plan = buildProductPlan({
+      requestKg,
+      boxesByParty: null,
+      manualParties,
+      isTruffle,
+      extraPiecesPerPartyOverride,
+      manualAdditionalPieces
+    });
     return {
       active: true,
       label,
@@ -1092,10 +1114,10 @@
       additionalPieces: plan.additionalPieces,
       totalPieces: plan.totalPieces,
       totalMilkKg: plan.totalMilkKg,
-      boxesByParty: plan.boxesByParty,
-      boxesTotal: plan.boxesTotal,
-      usedBoxes: !!plan.boxesByParty,
-      manualPartiesUsed: !plan.boxesByParty && !!manualParties
+      boxesByParty: null,
+      boxesTotal: 0,
+      usedBoxes: false,
+      manualPartiesUsed: true
     };
   }
 
@@ -1107,13 +1129,15 @@
     saveSettings(settings);
 
     const results = $('chanResults');
-    const classicPlan = readProductForChan(false, results);
+    const fillingOtkPerParty = readFillingNumberForChan('fillingOtkPerParty', settings.extraPiecesPerParty, 'ОТК на партию в “Начинке”', results, { integer: true });
+    if (fillingOtkPerParty === null) return;
+    const classicPlan = readProductForChan(false, results, fillingOtkPerParty);
     if (!classicPlan) return;
-    const trufflePlan = readProductForChan(true, results);
+    const trufflePlan = readProductForChan(true, results, fillingOtkPerParty);
     if (!trufflePlan) return;
 
     if (!classicPlan.active && !trufflePlan.active) {
-      showError(results, 'Заполните заявку или коробки на вкладке Буррата и/или Трюфель, потом снова нажмите расчёт чана.');
+      showError(results, 'Заполните заявку и партии в первом разделе “Начинка”, потом снова нажмите расчёт чана.');
       $('copyChan').classList.add('hidden');
       return;
     }
@@ -1192,7 +1216,7 @@
   function renderChanResults(d) {
     const boxesLine = d.boxesTotal > 0 ? ` • Коробки: ${fmt(d.boxesTotal)} кор.` : '';
     return `
-      ${headerCard('Итог по чану', `${d.chanCount} чан(ов) • ${d.parties} парт.${boxesLine}`, `Молоко всего: ${fmt(d.totalMilkKg)} кг • данные взяты из вкладок Буррата и Трюфель`)}
+      ${headerCard('Итог по чану', `${d.chanCount} чан(ов) • ${d.parties} парт.${boxesLine}`, `Молоко всего: ${fmt(d.totalMilkKg)} кг • данные взяты из раздела Начинка`)}
       <div class="section-title">Главные результаты</div>
       <div class="metrics-grid">
         ${metric('Заявка всего', `${fmt(d.totalRequestKg)} кг`, 'soft-green')}
@@ -1209,7 +1233,7 @@
         ${metric('Фермент всего', `${fmt(d.totalRennet)} г`, 'soft-blue')}
       </div>
 
-      <div class="section-title">Данные из расчётов бурраты</div>
+      <div class="section-title">Данные из первого раздела “Начинка”</div>
       <div class="card">
         ${renderChanProductLines('Классика', d.classicPlan)}
         <div class="divider"></div>
@@ -1238,7 +1262,7 @@
       `).join('')}
 
       ${chanTableCard()}
-      <div class="card note-card">Чан автоматически складывает данные из вкладок Буррата и Трюфель: заявки, партии и коробки. ОТК добавляется отдельно по количеству партий и не входит в коробки. Молоко делится по чанам так, чтобы в одном чане не было больше заданного максимума в кг.</div>
+      <div class="card note-card">Чан автоматически складывает данные из первого раздела “Начинка”: заявки, партии и дополнительные штуки. Коробки из разделов Буррата/Трюфель здесь не используются. ОТК добавляется отдельно по количеству партий. Молоко делится по чанам так, чтобы в одном чане не было больше заданного максимума в кг.</div>
     `;
   }
 
