@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_16';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_16';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_16';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_17';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_17';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_17';
 
   const DEFAULTS = {
     requestToPieces: 8,

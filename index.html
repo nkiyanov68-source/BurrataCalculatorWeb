@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Burrata" />
-  <title>Burrata Calculator v1.13.16</title>
+  <title>Burrata Calculator v1.13.17</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
@@ -20,7 +20,7 @@
         <img src="icons/icon-72.png" alt="" class="brand-icon" />
         <div>
           <h1>Burrata Calculator</h1>
-          <p>Веб-версия v1.13.16</p>
+          <p>Веб-версия v1.13.17</p>
         </div>
       </div>
     </header>
@@ -97,12 +97,10 @@
           <p>Смахни вбок, чтобы перейти между бурратой, трюфелем и чаном.</p>
         </div>
 
-        <div class="card input-card">
-          <h3>Авторасчёт чана</h3>
-          <p class="hint">Чан теперь берёт данные из первого раздела “Начинка”: заявку, партии и дополнительные штуки. Коробки из разделов Буррата/Трюфель здесь не используются.</p>
-          <button class="primary-btn" id="calcChan">Рассчитать чан из начинки</button>
-          <button class="secondary-btn hidden" id="copyChan">Скопировать расчёт чана</button>
-          <button class="secondary-btn" id="openSettingsFromChan">Изменить плотность / лимонку / максимум чана</button>
+        <div class="card input-card chan-settings-card">
+          <button class="secondary-btn" id="openSettingsFromChan">Настройки чана</button>
+          <button class="primary-btn hidden" id="calcChan" style="display:none!important">Рассчитать чан из начинки</button>
+          <button class="secondary-btn hidden" id="copyChan" style="display:none!important">Скопировать расчёт чана</button>
         </div>
 
         <div id="chanResults" class="results"></div>
