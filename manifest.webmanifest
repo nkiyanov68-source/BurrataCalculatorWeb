@@ -1,7 +1,7 @@
 {
   "name": "Burrata Calculator",
   "short_name": "Burrata",
-  "description": "Калькулятор расчёта заявки бурраты, трюфеля и чана",
+  "description": "Калькулятор расчёта заявки классики, трюфеля и чана",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

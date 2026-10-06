@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_19';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_19';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_19';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_21';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_21';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_21';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -142,7 +142,7 @@
     $('toggleTruffleSource').addEventListener('click', () => toggleProductSourcePanel(true));
 
     $('copyFilling').addEventListener('click', () => copyText(lastFillingText, 'Сначала сделайте расчёт начинки'));
-    $('copyBurrata').addEventListener('click', () => copyText(lastBurrataText, 'Сначала сделайте расчёт бурраты'));
+    $('copyBurrata').addEventListener('click', () => copyText(lastBurrataText, 'Сначала сделайте расчёт классики'));
     $('copyTruffle').addEventListener('click', () => copyText(lastTruffleText, 'Сначала сделайте расчёт трюфеля'));
     $('copyChan').addEventListener('click', () => copyText(lastChanText, 'Сначала сделайте расчёт чана'));
 
@@ -216,7 +216,7 @@
 
   function tabLabel(tab) {
     if (tab === 'filling') return 'Начинка';
-    if (tab === 'burrata') return 'Буррата';
+    if (tab === 'burrata') return 'Классика';
     if (tab === 'truffle') return 'Трюфель';
     return 'Чан';
   }
@@ -247,7 +247,7 @@
 
   function updateProductSourceSummary(isTruffle) {
     const prefix = isTruffle ? 'truffle' : 'burrata';
-    const label = isTruffle ? 'Трюфель' : 'Буррата';
+    const label = isTruffle ? 'Трюфель' : 'Классика';
     const btn = $(`toggle${isTruffle ? 'Truffle' : 'Burrata'}Source`);
     if (!btn) return;
     const kgInput = $(`${prefix}Kg`);
@@ -259,6 +259,12 @@
     const kgText = kgRaw ? `${kgRaw} кг` : '— кг';
     let partiesText = partiesRaw || '';
     if (!partiesText && boxesParties > 0) partiesText = `${boxesParties} из коробок`;
+    if (!partiesText && kgRaw) {
+      const kgValue = Number(String(kgRaw).replace(',', '.'));
+      if (Number.isFinite(kgValue) && kgValue > 0) {
+        partiesText = `авто ${isTruffle ? getTruffleParties(kgValue) : getParties(kgValue)}`;
+      }
+    }
     if (!partiesText) partiesText = '—';
     btn.textContent = `${label}: ${kgText} • Партии: ${partiesText}`;
   }
@@ -352,9 +358,9 @@
   }
 
   function addStartMessages() {
-    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Данные сразу переносятся в разделы Буррата/Трюфель, а после расчёта обновляются их итоги и раздел Чан. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
-    $('burrataResults').innerHTML = startCard('Введите заявку в кг. Можно вручную указать количество партий или коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
-    $('truffleResults').innerHTML = startCard('Введите заявку трюфельной бурраты. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2067 г на таз.');
+    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля. Можно заполнить только один вид. Партии можно оставить пустыми — они подставятся автоматически. Данные сразу переносятся в разделы Классика/Трюфель, а после расчёта обновляются их итоги и раздел Чан. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
+    $('burrataResults').innerHTML = startCard('Введите заявку классики в кг. Партии можно не указывать — они подставятся автоматически. Также можно указать коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
+    $('truffleResults').innerHTML = startCard('Введите заявку трюфельной классики. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2067 г на таз.');
     $('chanResults').innerHTML = startCard('Заполните первый раздел “Начинка” и нажмите “Рассчитать начинку” — чан пересчитается автоматически.');
   }
 
@@ -474,7 +480,7 @@
     if (!truffle) return;
 
     if (!classic.active && !truffle.active) {
-      showError(results, 'Введите заявку в кг и количество партий хотя бы для классики или трюфеля.');
+      showError(results, 'Введите заявку в кг хотя бы для классики или трюфеля. Партии можно оставить пустыми — они рассчитаются автоматически.');
       copyBtn.classList.add('hidden');
       return;
     }
@@ -502,7 +508,7 @@
     copyBtn.classList.remove('hidden');
     saveResultState('filling', results.innerHTML, lastFillingText);
 
-    // После расчёта начинки сразу обновляем разделы Буррата/Трюфель,
+    // После расчёта начинки сразу обновляем разделы Классика/Трюфель,
     // чтобы там уже был виден итог заявки без отдельного нажатия.
     calculateProductSectionsFromFilling();
 
@@ -532,13 +538,11 @@
       copyBtn.classList.add('hidden');
       return null;
     }
-    if (!rawParties) {
-      showError(results, `${label}: укажите количество партий.`);
-      copyBtn.classList.add('hidden');
-      return null;
+    let manualParties = null;
+    if (rawParties) {
+      manualParties = parseManualParties(rawParties, results, copyBtn);
+      if (manualParties === null) return null;
     }
-    const manualParties = parseManualParties(rawParties, results, copyBtn);
-    if (manualParties === null) return null;
 
     const plan = buildProductPlan({
       requestKg,
@@ -1163,13 +1167,11 @@
       return null;
     }
 
-    if (!rawManualParties) {
-      showError(results, `${label}: в первом разделе “Начинка” укажите количество партий.`);
-      $('copyChan').classList.add('hidden');
-      return null;
+    let manualParties = null;
+    if (rawManualParties) {
+      manualParties = parseManualParties(rawManualParties, results, $('copyChan'));
+      if (manualParties === null) return null;
     }
-    const manualParties = parseManualParties(rawManualParties, results, $('copyChan'));
-    if (manualParties === null) return null;
 
     const manualAdditionalPieces = parseAdditionalPieces(rawExtraPieces, results, $('copyChan'));
     if (manualAdditionalPieces === null) return null;
@@ -1217,7 +1219,7 @@
     if (!trufflePlan) return;
 
     if (!classicPlan.active && !trufflePlan.active) {
-      showError(results, 'Заполните заявку и партии в первом разделе “Начинка”, потом снова нажмите расчёт чана.');
+      showError(results, 'Заполните заявку в первом разделе “Начинка”, потом снова нажмите расчёт чана. Партии можно оставить пустыми — они рассчитаются автоматически.');
       $('copyChan').classList.add('hidden');
       return;
     }
@@ -1516,7 +1518,7 @@
 
   function buildPlainResult(d) {
     let sb = '';
-    sb += d.isTruffle ? 'Калькулятор трюфеля\n\n' : 'Калькулятор бурраты\n\n';
+    sb += d.isTruffle ? 'Калькулятор трюфеля\n\n' : 'Калькулятор классики\n\n';
     sb += `Заявка: ${fmt(d.requestKg)} кг\n`;
     sb += `Количество партий: ${d.parties}\n`;
     if (d.usedBoxes) {

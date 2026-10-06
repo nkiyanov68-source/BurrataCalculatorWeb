@@ -1,4 +1,4 @@
-const CACHE_NAME = 'burrata-calculator-web-v1-13-19';
+const CACHE_NAME = 'burrata-calculator-web-v1-13-21';
 const ASSETS = [
   './',
   './index.html',

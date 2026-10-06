@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Burrata" />
-  <title>Burrata Calculator v1.13.19</title>
+  <title>Burrata Calculator v1.13.21</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
@@ -20,7 +20,7 @@
         <img src="icons/icon-72.png" alt="" class="brand-icon" />
         <div>
           <h1>Burrata Calculator</h1>
-          <p>Веб-версия v1.13.19</p>
+          <p>Веб-версия v1.13.21</p>
         </div>
       </div>
     </header>
@@ -28,7 +28,7 @@
     <nav class="tabs" aria-label="Разделы калькулятора">
       <button class="tab active" data-tab="filling">● Начинка</button>
       <button class="tab" data-tab="chan">Чан</button>
-      <button class="tab" data-tab="burrata">Буррата</button>
+      <button class="tab" data-tab="burrata">Классика</button>
       <button class="tab" data-tab="truffle">Трюфель</button>
     </nav>
 
@@ -36,7 +36,7 @@
       <section class="page active" id="page-filling">
         <div class="page-title compact-title">
           <h2>Расчёт начинки</h2>
-          <p>Быстрый расчёт начинки. После нажатия сразу обновляются разделы “Чан”, “Буррата” и “Трюфель”.</p>
+          <p>Быстрый расчёт начинки. После нажатия сразу обновляются разделы “Чан”, “Классика” и “Трюфель”.</p>
         </div>
 
         <div class="card input-card compact-card">
@@ -46,16 +46,16 @@
               <input id="fillingClassicKg" class="main-input compact-input" inputmode="decimal" placeholder="107,25" />
             </div>
             <div>
-              <label class="field-label" for="fillingClassicParties">Партии</label>
-              <input id="fillingClassicParties" class="main-input compact-input" inputmode="numeric" placeholder="4" />
+              <label class="field-label" for="fillingClassicParties">Партии, если нужно</label>
+              <input id="fillingClassicParties" class="main-input compact-input" inputmode="numeric" placeholder="авто" />
             </div>
             <div>
               <label class="field-label" for="fillingTruffleKg">Трюфель, кг</label>
               <input id="fillingTruffleKg" class="main-input compact-input" inputmode="decimal" placeholder="16,5" />
             </div>
             <div>
-              <label class="field-label" for="fillingTruffleParties">Партии</label>
-              <input id="fillingTruffleParties" class="main-input compact-input" inputmode="numeric" placeholder="1" />
+              <label class="field-label" for="fillingTruffleParties">Партии, если нужно</label>
+              <input id="fillingTruffleParties" class="main-input compact-input" inputmode="numeric" placeholder="авто" />
             </div>
           </div>
           <button class="secondary-btn compact-toggle-btn" id="toggleFillingAdvanced">+ Настройки начинки</button>
@@ -85,7 +85,7 @@
           </div>
           <button class="primary-btn" id="calcFilling">Рассчитать начинку</button>
           <button class="secondary-btn hidden" id="copyFilling">Скопировать расчёт</button>
-          <p class="hint compact-hint">На экране оставлены только главные поля. Кг и партии сразу переносятся в Буррату/Трюфель, а после расчёта там появляются итоги заявки.</p>
+          <p class="hint compact-hint">На экране оставлены только главные поля. Кг сразу переносятся в Классику/Трюфель. Партии можно оставить пустыми — они рассчитаются автоматически, а после расчёта там появляются итоги заявки.</p>
         </div>
 
         <div id="fillingResults" class="results compact-results"></div>
@@ -94,7 +94,7 @@
       <section class="page" id="page-chan">
         <div class="page-title">
           <h2>Калькулятор чана</h2>
-          <p>Смахни вбок, чтобы перейти между бурратой, трюфелем и чаном.</p>
+          <p>Смахни вбок, чтобы перейти между классикой, трюфелем и чаном.</p>
         </div>
 
         <div class="card input-card chan-settings-card">
@@ -108,18 +108,18 @@
 
       <section class="page" id="page-burrata">
         <div class="page-title">
-          <h2>Калькулятор бурраты</h2>
-          <p>Расчёт заявки, молока, начинки, тазов, страчителлы и сливок на таз.</p>
+          <h2>Калькулятор классики</h2>
+          <p>Расчёт классики: заявка, молоко, начинка, тазы, страчителла и сливки на таз.</p>
         </div>
 
         <div class="card input-card">
-          <button class="secondary-btn product-source-toggle" id="toggleBurrataSource" type="button">Буррата: — кг • Партии: —</button>
+          <button class="secondary-btn product-source-toggle" id="toggleBurrataSource" type="button">Классика: — кг • Партии: —</button>
           <div class="product-source-panel hidden" id="burrataSourcePanel">
-            <label class="field-label" for="burrataKg">Заявка готовой бурраты, кг</label>
+            <label class="field-label" for="burrataKg">Заявка классики, кг</label>
             <p class="hint">Кг автоматически берутся из первого раздела “Начинка”, но здесь можно изменить вручную.</p>
             <input id="burrataKg" class="main-input" inputmode="decimal" placeholder="Например: 107,25" />
             <label class="field-label top-space" for="burrataManualParties">Количество партий вручную</label>
-            <p class="hint">Партии автоматически берутся из первого раздела “Начинка”. Можно изменить вручную. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
+            <p class="hint">Партии можно не указывать — тогда они считаются автоматически. Можно изменить вручную. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
             <input id="burrataManualParties" class="main-input" inputmode="numeric" placeholder="Например: 4 или 5" />
           </div>
           <label class="field-label top-space" for="burrataBoxesByParty">Коробки по партиям</label>
@@ -160,11 +160,11 @@
         <div class="card input-card">
           <button class="secondary-btn product-source-toggle" id="toggleTruffleSource" type="button">Трюфель: — кг • Партии: —</button>
           <div class="product-source-panel hidden" id="truffleSourcePanel">
-            <label class="field-label" for="truffleKg">Заявка трюфельной бурраты, кг</label>
+            <label class="field-label" for="truffleKg">Заявка трюфеля, кг</label>
             <p class="hint">Кг автоматически берутся из первого раздела “Начинка”, но здесь можно изменить вручную.</p>
             <input id="truffleKg" class="main-input" inputmode="decimal" placeholder="Например: 16,5" />
             <label class="field-label top-space" for="truffleManualParties">Количество партий вручную</label>
-            <p class="hint">Партии автоматически берутся из первого раздела “Начинка”. Можно изменить вручную. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
+            <p class="hint">Партии можно не указывать — тогда они считаются автоматически. Можно изменить вручную. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
             <input id="truffleManualParties" class="main-input" inputmode="numeric" placeholder="Например: 1 или 2" />
           </div>
           <label class="field-label top-space" for="truffleBoxesByParty">Коробки по партиям</label>
