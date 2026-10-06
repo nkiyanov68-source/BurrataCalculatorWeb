@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_17';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_17';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_17';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_18';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_18';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_18';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -138,6 +138,8 @@
     $('toggleFillingAdvanced').addEventListener('click', () => toggleOptionalPanel('toggleFillingAdvanced', 'fillingAdvancedPanel', '+ Настройки начинки', '− Скрыть настройки начинки'));
     $('toggleBurrataExtra').addEventListener('click', () => toggleOptionalPanel('toggleBurrataExtra', 'burrataExtraPanel', '+ Дополнительно', '− Скрыть дополнительно'));
     $('toggleTruffleExtra').addEventListener('click', () => toggleOptionalPanel('toggleTruffleExtra', 'truffleExtraPanel', '+ Дополнительно', '− Скрыть дополнительно'));
+    $('toggleBurrataSource').addEventListener('click', () => toggleProductSourcePanel(false));
+    $('toggleTruffleSource').addEventListener('click', () => toggleProductSourcePanel(true));
 
     $('copyFilling').addEventListener('click', () => copyText(lastFillingText, 'Сначала сделайте расчёт начинки'));
     $('copyBurrata').addEventListener('click', () => copyText(lastBurrataText, 'Сначала сделайте расчёт бурраты'));
@@ -167,7 +169,9 @@
         if (id.startsWith('filling')) {
           resetBoxesAfterFillingChange(id);
           syncFillingToProductInputs(false);
+          updateProductSourceSummaries();
         } else {
+          updateProductSourceSummaries();
           saveFormState();
         }
       });
@@ -223,6 +227,45 @@
     const show = panel.classList.contains('hidden');
     panel.classList.toggle('hidden', !show);
     btn.textContent = show ? openText : closedText;
+  }
+
+  function toggleProductSourcePanel(isTruffle) {
+    const prefix = isTruffle ? 'truffle' : 'burrata';
+    const panel = $(`${prefix}SourcePanel`);
+    const btn = $(`toggle${isTruffle ? 'Truffle' : 'Burrata'}Source`);
+    if (!panel || !btn) return;
+    const show = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !show);
+    btn.classList.toggle('open', show);
+    updateProductSourceSummary(isTruffle);
+  }
+
+  function updateProductSourceSummaries() {
+    updateProductSourceSummary(false);
+    updateProductSourceSummary(true);
+  }
+
+  function updateProductSourceSummary(isTruffle) {
+    const prefix = isTruffle ? 'truffle' : 'burrata';
+    const label = isTruffle ? 'Трюфель' : 'Буррата';
+    const btn = $(`toggle${isTruffle ? 'Truffle' : 'Burrata'}Source`);
+    if (!btn) return;
+    const kgInput = $(`${prefix}Kg`);
+    const partiesInput = $(`${prefix}ManualParties`);
+    const boxesInput = $(`${prefix}BoxesByParty`);
+    const kgRaw = String(kgInput && kgInput.value || '').trim();
+    const partiesRaw = String(partiesInput && partiesInput.value || '').trim();
+    const boxesParties = countPartiesFromBoxes(String(boxesInput && boxesInput.value || '').trim());
+    const kgText = kgRaw ? `${kgRaw} кг` : '— кг';
+    let partiesText = partiesRaw || '';
+    if (!partiesText && boxesParties > 0) partiesText = `${boxesParties} из коробок`;
+    if (!partiesText) partiesText = '—';
+    btn.textContent = `${label}: ${kgText} • Партии: ${partiesText}`;
+  }
+
+  function countPartiesFromBoxes(raw) {
+    if (!raw) return 0;
+    return raw.split(/[\/\\;]+/).map((v) => v.trim()).filter(Boolean).length;
   }
 
   function toggleSettings() {
@@ -333,6 +376,7 @@
       if (onlyFilled && !value) return;
       to.value = value;
     });
+    updateProductSourceSummaries();
     saveFormState();
   }
 
@@ -1551,7 +1595,7 @@
   function buildPlainChanResult(d) {
     let sb = '';
     sb += 'Калькулятор чана\n\n';
-    sb += 'Данные взяты автоматически из вкладок Буррата и Трюфель.\n\n';
+    sb += 'Данные взяты автоматически из первого раздела “Начинка”.\n\n';
     [d.classicPlan, d.trufflePlan].forEach((plan) => {
       sb += `${plan.label}: `;
       if (!plan.active) {
@@ -1611,6 +1655,7 @@
     restoreOneResult('burrata', resultState.burrata, $('burrataResults'), $('copyBurrata'));
     restoreOneResult('truffle', resultState.truffle, $('truffleResults'), $('copyTruffle'));
     restoreOneResult('chan', resultState.chan, $('chanResults'), $('copyChan'));
+    updateProductSourceSummaries();
 
     return resultState.currentTab || formState.currentTab || 'filling';
   }

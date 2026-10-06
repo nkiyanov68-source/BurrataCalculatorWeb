@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Burrata" />
-  <title>Burrata Calculator v1.13.17</title>
+  <title>Burrata Calculator v1.13.18</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
@@ -20,7 +20,7 @@
         <img src="icons/icon-72.png" alt="" class="brand-icon" />
         <div>
           <h1>Burrata Calculator</h1>
-          <p>Веб-версия v1.13.17</p>
+          <p>Веб-версия v1.13.18</p>
         </div>
       </div>
     </header>
@@ -113,12 +113,15 @@
         </div>
 
         <div class="card input-card">
-          <label class="field-label" for="burrataKg">Заявка готовой бурраты, кг</label>
-          <p class="hint">Введите кг. Можно вручную задать партии или указать коробки по партиям.</p>
-          <input id="burrataKg" class="main-input" inputmode="decimal" placeholder="Например: 107,25" />
-          <label class="field-label top-space" for="burrataManualParties">Количество партий вручную</label>
-          <p class="hint">Можно оставить пустым. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
-          <input id="burrataManualParties" class="main-input" inputmode="numeric" placeholder="Например: 4 или 5" />
+          <button class="secondary-btn product-source-toggle" id="toggleBurrataSource" type="button">Буррата: — кг • Партии: —</button>
+          <div class="product-source-panel hidden" id="burrataSourcePanel">
+            <label class="field-label" for="burrataKg">Заявка готовой бурраты, кг</label>
+            <p class="hint">Кг автоматически берутся из первого раздела “Начинка”, но здесь можно изменить вручную.</p>
+            <input id="burrataKg" class="main-input" inputmode="decimal" placeholder="Например: 107,25" />
+            <label class="field-label top-space" for="burrataManualParties">Количество партий вручную</label>
+            <p class="hint">Партии автоматически берутся из первого раздела “Начинка”. Можно изменить вручную. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
+            <input id="burrataManualParties" class="main-input" inputmode="numeric" placeholder="Например: 4 или 5" />
+          </div>
           <label class="field-label top-space" for="burrataBoxesByParty">Коробки по партиям</label>
           <p class="hint">Пример: 20/41/41/41. В одной коробке 6 штук, ОТК в коробки не входит.</p>
           <input id="burrataBoxesByParty" class="main-input" inputmode="text" placeholder="Например: 20/41/41/41" />
@@ -155,12 +158,15 @@
         </div>
 
         <div class="card input-card">
-          <label class="field-label" for="truffleKg">Заявка трюфельной бурраты, кг</label>
-          <p class="hint">По умолчанию: 95 г начинки на штуку, 2067 г на таз. Сальса подбирается на каждый таз: 20, 18 или 16 г.</p>
-          <input id="truffleKg" class="main-input" inputmode="decimal" placeholder="Например: 16,5" />
-          <label class="field-label top-space" for="truffleManualParties">Количество партий вручную</label>
-          <p class="hint">Можно оставить пустым. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
-          <input id="truffleManualParties" class="main-input" inputmode="numeric" placeholder="Например: 1 или 2" />
+          <button class="secondary-btn product-source-toggle" id="toggleTruffleSource" type="button">Трюфель: — кг • Партии: —</button>
+          <div class="product-source-panel hidden" id="truffleSourcePanel">
+            <label class="field-label" for="truffleKg">Заявка трюфельной бурраты, кг</label>
+            <p class="hint">Кг автоматически берутся из первого раздела “Начинка”, но здесь можно изменить вручную.</p>
+            <input id="truffleKg" class="main-input" inputmode="decimal" placeholder="Например: 16,5" />
+            <label class="field-label top-space" for="truffleManualParties">Количество партий вручную</label>
+            <p class="hint">Партии автоматически берутся из первого раздела “Начинка”. Можно изменить вручную. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
+            <input id="truffleManualParties" class="main-input" inputmode="numeric" placeholder="Например: 1 или 2" />
+          </div>
           <label class="field-label top-space" for="truffleBoxesByParty">Коробки по партиям</label>
           <p class="hint">Пример: 22. В одной коробке 6 штук, ОТК в коробки не входит.</p>
           <input id="truffleBoxesByParty" class="main-input" inputmode="text" placeholder="Например: 22" />

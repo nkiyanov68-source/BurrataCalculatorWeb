@@ -454,3 +454,38 @@ button, input { font: inherit; }
 .collapsible-body {
   margin-top: 8px;
 }
+
+
+/* v1.13.18: заявка и партии бурраты/трюфеля спрятаны в сворачиваемую панель */
+.product-source-toggle {
+  margin-top: 0;
+  margin-bottom: 12px;
+  text-align: left;
+  background: #eef2ff;
+  color: var(--primary);
+  line-height: 1.25;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.product-source-toggle::after {
+  content: '+';
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 950;
+  flex: 0 0 auto;
+}
+.product-source-toggle.open::after {
+  content: '−';
+}
+.product-source-panel {
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+.product-source-panel .main-input:last-child {
+  margin-bottom: 4px;
+}
