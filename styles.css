@@ -424,3 +424,33 @@ button, input { font: inherit; }
 @media (max-width: 390px) {
   .advanced-settings-grid { grid-template-columns: 1fr; }
 }
+
+/* v1.13.13: сворачиваемый блок «Классика / трюфель» */
+.collapsible-section {
+  margin: 8px 0 12px;
+}
+.collapsible-summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: #eef2ff;
+  color: var(--primary);
+}
+.collapsible-summary::-webkit-details-marker { display: none; }
+.collapsible-summary::after {
+  content: '+';
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1;
+}
+.collapsible-section[open] .collapsible-summary::after {
+  content: '−';
+}
+.collapsible-body {
+  margin-top: 8px;
+}

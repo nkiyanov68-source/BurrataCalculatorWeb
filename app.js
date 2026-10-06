@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_12';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_12';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_12';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_13';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_13';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_13';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -168,8 +168,12 @@
     FORM_INPUT_IDS.forEach((id) => {
       const input = $(id);
       if (input) input.addEventListener('input', () => {
-        saveFormState();
-        if (id.startsWith('filling')) syncFillingToProductInputs(false);
+        if (id.startsWith('filling')) {
+          resetBoxesAfterFillingChange(id);
+          syncFillingToProductInputs(false);
+        } else {
+          saveFormState();
+        }
       });
     });
 
@@ -334,6 +338,19 @@
       to.value = value;
     });
     saveFormState();
+  }
+
+  function resetBoxesAfterFillingChange(changedId) {
+    const resetClassicBoxes = changedId === 'fillingClassicKg' || changedId === 'fillingClassicParties';
+    const resetTruffleBoxes = changedId === 'fillingTruffleKg' || changedId === 'fillingTruffleParties';
+    if (resetClassicBoxes) {
+      const boxes = $('burrataBoxesByParty');
+      if (boxes && boxes.value) boxes.value = '';
+    }
+    if (resetTruffleBoxes) {
+      const boxes = $('truffleBoxesByParty');
+      if (boxes && boxes.value) boxes.value = '';
+    }
   }
 
   function readFillingOnlyNumber(id, fallback, label, opts = {}) {
@@ -559,8 +576,12 @@
         ${data.totals.additionalPieces > 0 ? metric('Доп. штуки', `+${fmt(data.totals.additionalPieces)} шт.`, 'soft-blue') : ''}
         ${data.totals.salsaG > 0 ? metric('Сальса трюфель', `${fmt(data.totals.salsaG)} г`, 'soft-orange') : ''}
       </div>
-      <div class="section-title">Классика / трюфель</div>
-      ${productCards}
+      <details class="collapsible-section">
+        <summary class="section-title collapsible-summary">Классика / трюфель</summary>
+        <div class="collapsible-body">
+          ${productCards}
+        </div>
+      </details>
       <div class="section-title">По партиям</div>
       ${partyCards}
       <div class="card note-card">Эта главная страница считает только начинку. Коробки не учитываются, соль не выводится. ОТК, дополнительные штуки и максимум общего количества в 1 тазу находятся в “+ Настройки начинки”.</div>
