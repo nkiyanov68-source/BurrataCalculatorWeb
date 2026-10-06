@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_18';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_18';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_18';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_19';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_19';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_19';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -355,7 +355,7 @@
     $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Данные сразу переносятся в разделы Буррата/Трюфель, а после расчёта обновляются их итоги и раздел Чан. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
     $('burrataResults').innerHTML = startCard('Введите заявку в кг. Можно вручную указать количество партий или коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
     $('truffleResults').innerHTML = startCard('Введите заявку трюфельной бурраты. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2067 г на таз.');
-    $('chanResults').innerHTML = startCard('Чан берёт данные автоматически из первого раздела “Начинка”. Заполните Начинку и нажмите “Рассчитать начинку” — чан пересчитается сам. Коробки из разделов Буррата/Трюфель здесь не используются.');
+    $('chanResults').innerHTML = startCard('Заполните первый раздел “Начинка” и нажмите “Рассчитать начинку” — чан пересчитается автоматически.');
   }
 
 
@@ -1300,38 +1300,27 @@
   function renderChanResults(d) {
     const boxesLine = d.boxesTotal > 0 ? ` • Коробки: ${fmt(d.boxesTotal)} кор.` : '';
     return `
-      ${headerCard('Итог по чану', `${d.chanCount} чан(ов) • ${d.parties} парт.${boxesLine}`, `Молоко всего: ${fmt(d.totalMilkKg)} кг • данные взяты из раздела Начинка`)}
-      <div class="section-title">Главные результаты</div>
-      <div class="metrics-grid">
-        ${metric('Заявка всего', `${fmt(d.totalRequestKg)} кг`, 'soft-green')}
-        ${metric('Штук всего с ОТК', `${fmt(d.totalPieces)} шт.`, 'soft-green')}
-        ${d.additionalPieces > 0 ? metric('Доп. штуки всего', `+${fmt(d.additionalPieces)} шт.`, 'soft-blue') : ''}
-        ${metric('Партии всего', `${d.parties}`, 'soft-blue')}
-        ${d.boxesTotal > 0 ? metric('Коробки всего', `${fmt(d.boxesTotal)} кор.`, 'soft-orange') : ''}
-        ${metric('Молоко всего', `${fmt(d.totalMilkKg)} кг`, 'soft-blue')}
-        ${metric('Литры всего', `${fmt(d.totalLiters)} л`, 'soft-green')}
-        ${metric('Чанов нужно', `${d.chanCount}`, 'soft-orange')}
-        ${metric('Кг по чанам', joinChanMilkKg(d.chanLoads), 'soft-blue')}
-        ${metric('Литры на чан', `${fmt(d.litersPerChan)} л`, 'soft-green')}
-        ${metric('Лимонка всего', `${fmt(d.totalAcid)} г`, 'soft-blue')}
-        ${metric('Фермент всего', `${fmt(d.totalRennet)} г`, 'soft-blue')}
-      </div>
+      ${headerCard('Итог по чану', `${d.chanCount} чан(ов) • ${d.parties} парт. • ${fmt(d.totalPieces)} шт.${boxesLine}`, `Молоко всего: ${fmt(d.totalMilkKg)} кг • Литры всего: ${fmt(d.totalLiters)} л`)}
 
-      <div class="section-title">Данные из первого раздела “Начинка”</div>
-      <div class="card">
-        ${renderChanProductLines('Классика', d.classicPlan)}
-        <div class="divider"></div>
-        ${renderChanProductLines('Трюфель', d.trufflePlan)}
-        <div class="divider"></div>
-        ${strongLine('Заявка всего', `${fmt(d.totalRequestKg)} кг`, 'primary')}
-        ${strongLine('Партии всего', `${d.parties}`, 'primary')}
-        ${d.boxesTotal > 0 ? strongLine('Коробки всего', `${fmt(d.boxesTotal)} кор.`, 'warning') : ''}
-        ${line(`Заявка × ${formatRaw(settings.requestToPieces)}`, `${fmt(d.basePieces)} шт.`)}
-        ${line('Добавка по партиям', `+${fmt(d.extraPieces)} шт.`)}
-        ${d.additionalPieces > 0 ? line('Дополнительные штуки', `+${fmt(d.additionalPieces)} шт.`) : ''}
-        ${strongLine('Штук всего', `${fmt(d.totalPieces)} шт.`, 'success')}
-        ${strongLine('Молоко рассчитано', `${fmt(d.totalMilkKg)} кг`, 'primary')}
-      </div>
+      <details class="collapsible-section chan-collapsible">
+        <summary class="collapsible-summary"><span>Главные результаты</span></summary>
+        <div class="collapsible-body">
+          <div class="metrics-grid">
+            ${metric('Заявка всего', `${fmt(d.totalRequestKg)} кг`, 'soft-green')}
+            ${metric('Штук всего с ОТК', `${fmt(d.totalPieces)} шт.`, 'soft-green')}
+            ${d.additionalPieces > 0 ? metric('Доп. штуки всего', `+${fmt(d.additionalPieces)} шт.`, 'soft-blue') : ''}
+            ${metric('Партии всего', `${d.parties}`, 'soft-blue')}
+            ${d.boxesTotal > 0 ? metric('Коробки всего', `${fmt(d.boxesTotal)} кор.`, 'soft-orange') : ''}
+            ${metric('Молоко всего', `${fmt(d.totalMilkKg)} кг`, 'soft-blue')}
+            ${metric('Литры всего', `${fmt(d.totalLiters)} л`, 'soft-green')}
+            ${metric('Чанов нужно', `${d.chanCount}`, 'soft-orange')}
+            ${metric('Кг по чанам', joinChanMilkKg(d.chanLoads), 'soft-blue')}
+            ${metric('Литры на чан', `${fmt(d.litersPerChan)} л`, 'soft-green')}
+            ${metric('Лимонка всего', `${fmt(d.totalAcid)} г`, 'soft-blue')}
+            ${metric('Фермент всего', `${fmt(d.totalRennet)} г`, 'soft-blue')}
+          </div>
+        </div>
+      </details>
 
       ${d.chanLoads.map((load) => `
         <div class="card">
@@ -1346,7 +1335,6 @@
       `).join('')}
 
       ${chanTableCard()}
-      <div class="card note-card">Чан автоматически складывает данные из первого раздела “Начинка”: заявки, партии и дополнительные штуки. Коробки из разделов Буррата/Трюфель здесь не используются. ОТК добавляется отдельно по количеству партий. Молоко делится по чанам так, чтобы в одном чане не было больше заданного максимума в кг.</div>
     `;
   }
 
@@ -1515,7 +1503,7 @@
 
   function chanTableCard() {
     const rows = CHAN_CM.map((cm, i) => line(fmt(cm), fmt(CHAN_LITERS[i]))).join('');
-    return `<div class="section-title">Таблица большого чана</div><div class="card"><div class="line"><div class="label" style="font-weight:900;color:var(--text)">Линейка, см</div><div class="val">Объём, л</div></div><div class="divider"></div>${rows}</div>`;
+    return `<details class="collapsible-section chan-collapsible"><summary class="collapsible-summary"><span>Таблица большого чана</span></summary><div class="collapsible-body"><div class="card"><div class="line"><div class="label" style="font-weight:900;color:var(--text)">Линейка, см</div><div class="val">Объём, л</div></div><div class="divider"></div>${rows}</div></div></details>`;
   }
 
   function joinPartyMilkKg(partyResults) {
