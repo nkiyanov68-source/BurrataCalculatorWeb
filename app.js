@@ -4,9 +4,9 @@
   const CHAN_CM = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 55];
   const CHAN_LITERS = [0, 9.8, 22.6, 42.2, 61.8, 82.2, 103.8, 128.8, 155, 183.6, 208.4, 238.6, 270.6, 293.4, 318];
   const ROUNDING_THRESHOLD = 0.6;
-  const STORAGE_KEY = 'burrata_web_settings_v1_13_15';
-  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_15';
-  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_15';
+  const STORAGE_KEY = 'burrata_web_settings_v1_13_16';
+  const FORM_STORAGE_KEY = 'burrata_web_form_v1_13_16';
+  const RESULT_STORAGE_KEY = 'burrata_web_results_v1_13_16';
 
   const DEFAULTS = {
     requestToPieces: 8,
@@ -131,10 +131,6 @@
     });
 
     $('calcFilling').addEventListener('click', calculateFilling);
-    $('projectFillingData').addEventListener('click', () => {
-      syncFillingToProductInputs(true);
-      toast('Заявка и партии перенесены в разделы');
-    });
     $('calcBurrata').addEventListener('click', () => calculateProduct(false));
     $('calcTruffle').addEventListener('click', () => calculateProduct(true));
     $('calcChan').addEventListener('click', calculateChan);
@@ -313,10 +309,10 @@
   }
 
   function addStartMessages() {
-    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Страница считает начинку и сразу обновляет раздел “Чан”. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
+    $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля и количество партий. Данные сразу переносятся в разделы Буррата/Трюфель, а после расчёта обновляются их итоги и раздел Чан. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
     $('burrataResults').innerHTML = startCard('Введите заявку в кг. Можно вручную указать количество партий или коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
     $('truffleResults').innerHTML = startCard('Введите заявку трюфельной бурраты. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2067 г на таз.');
-    $('chanResults').innerHTML = startCard('Чан берёт данные автоматически из первого раздела “Начинка”: заявку, партии и дополнительные штуки. Заполните Начинку и нажмите Рассчитать чан. Коробки из разделов Буррата/Трюфель здесь не используются.');
+    $('chanResults').innerHTML = startCard('Чан берёт данные автоматически из первого раздела “Начинка”. Заполните Начинку и нажмите “Рассчитать начинку” — чан пересчитается сам. Коробки из разделов Буррата/Трюфель здесь не используются.');
   }
 
 
@@ -351,6 +347,36 @@
       const boxes = $('truffleBoxesByParty');
       if (boxes && boxes.value) boxes.value = '';
     }
+  }
+
+  function hasProductInputForAutoCalc(isTruffle) {
+    const kgInput = isTruffle ? $('truffleKg') : $('burrataKg');
+    const partiesInput = isTruffle ? $('truffleManualParties') : $('burrataManualParties');
+    const boxesInput = isTruffle ? $('truffleBoxesByParty') : $('burrataBoxesByParty');
+    return !!(
+      String(kgInput && kgInput.value || '').trim() ||
+      String(partiesInput && partiesInput.value || '').trim() ||
+      String(boxesInput && boxesInput.value || '').trim()
+    );
+  }
+
+  function clearProductResultIfEmpty(isTruffle) {
+    if (hasProductInputForAutoCalc(isTruffle)) return;
+    const results = isTruffle ? $('truffleResults') : $('burrataResults');
+    const copyBtn = isTruffle ? $('copyTruffle') : $('copyBurrata');
+    if (results) results.innerHTML = startCard(isTruffle
+      ? 'Введите трюфель в первом разделе “Начинка” или прямо здесь, затем нажмите расчёт.'
+      : 'Введите классику в первом разделе “Начинка” или прямо здесь, затем нажмите расчёт.');
+    if (copyBtn) copyBtn.classList.add('hidden');
+    saveResultState(isTruffle ? 'truffle' : 'burrata', results ? results.innerHTML : '', '');
+  }
+
+  function calculateProductSectionsFromFilling() {
+    if (hasProductInputForAutoCalc(false)) calculateProduct(false);
+    else clearProductResultIfEmpty(false);
+
+    if (hasProductInputForAutoCalc(true)) calculateProduct(true);
+    else clearProductResultIfEmpty(true);
   }
 
   function readFillingOnlyNumber(id, fallback, label, opts = {}) {
@@ -432,7 +458,11 @@
     copyBtn.classList.remove('hidden');
     saveResultState('filling', results.innerHTML, lastFillingText);
 
-    // После расчёта начинки сразу обновляем раздел “Чан”,
+    // После расчёта начинки сразу обновляем разделы Буррата/Трюфель,
+    // чтобы там уже был виден итог заявки без отдельного нажатия.
+    calculateProductSectionsFromFilling();
+
+    // И сразу обновляем раздел “Чан”,
     // чтобы не нажимать отдельную кнопку во второй вкладке.
     calculateChan({ keepCurrentTab: true });
   }
