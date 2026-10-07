@@ -59,16 +59,10 @@
       ]
     },
     {
-      title: 'Молоко, чан, кислота, фермент',
+      title: 'Молоко, чан, фермент',
       fields: [
         ['milkPerPieceKg', 'Молоко: штук ×', '0,68'],
         ['milkDensity', 'Плотность молока, кг/л', '1,03'],
-        ['acidPerMilk1', 'Лимонная кислота 1 партия: молоко кг ×', '1,34'],
-        ['acidPerMilk2', 'Лимонная кислота 2 партия: молоко кг ×', '1,34'],
-        ['acidPerMilk3', 'Лимонная кислота 3 партия: молоко кг ×', '1,34'],
-        ['acidPerMilk4', 'Лимонная кислота 4 партия: молоко кг ×', '1,34'],
-        ['acidPerMilk5', 'Лимонная кислота 5 партия: молоко кг ×', '1,34'],
-        ['acidPerMilk6', 'Лимонная кислота 6 партия: молоко кг ×', '1,34'],
         ['rennetPerMilk', 'Фермент: молоко кг ×', '0,2'],
         ['maxChanMilkKg', 'Максимум на 1 чан, кг', '280']
       ]
@@ -116,6 +110,8 @@
   let lastTruffleText = '';
   let lastChanText = '';
   let lastChanCount = 1;
+  let lastChanLoads = [];
+  let lastPartyChanMap = {};
 
   const $ = (id) => document.getElementById(id);
 
@@ -155,6 +151,7 @@
     $('toggleSettings').addEventListener('click', toggleSettings);
     $('openSettingsFromTruffle').addEventListener('click', openSettingsFromOtherTab);
     $('openSettingsFromChan').addEventListener('click', toggleChanSettings);
+    $('applyChanAcidAll').addEventListener('click', applyChanAcidToAll);
     $('saveChanSettings').addEventListener('click', saveChanAcidSettings);
     $('resetChanSettings').addEventListener('click', resetChanAcidSettings);
     $('saveSettings').addEventListener('click', () => {
@@ -299,18 +296,58 @@
     const wrap = $('chanAcidSettingsFields');
     if (!wrap) return;
     const count = Math.max(1, Math.min(20, Number(chanCount) || 1));
+    const commonInput = $('chan-acid-all');
+    if (commonInput) {
+      const values = Array.from({ length: count }, (_, idx) => {
+        const v = settings[`chanAcidPerMilk${idx + 1}`];
+        return Number.isFinite(v) ? v : 1.34;
+      });
+      const allSame = values.every((v) => Math.abs(v - values[0]) < 0.000001);
+      commonInput.value = allSame ? formatRaw(values[0]) : '';
+    }
     wrap.innerHTML = '';
     for (let i = 1; i <= count; i++) {
       const key = `chanAcidPerMilk${i}`;
       const value = Number.isFinite(settings[key]) ? settings[key] : 1.34;
+      const currentLoad = lastChanLoads[i - 1];
+      const partyHint = currentLoad && currentLoad.partyCount > 0
+        ? ` • ${currentLoad.partyCount} парт. (${formatChanParties(currentLoad.parties)})`
+        : '';
       const row = document.createElement('div');
       row.className = 'setting-row';
       row.innerHTML = `
-        <label for="chan-acid-${i}">Чан ${i}: молоко кг × коэффициент</label>
+        <label for="chan-acid-${i}">Чан ${i}${partyHint}: молоко кг × коэффициент</label>
         <input class="setting-input" id="chan-acid-${i}" inputmode="decimal" value="${formatRaw(value)}" />
       `;
       wrap.appendChild(row);
     }
+  }
+
+  function applyChanAcidToAll() {
+    const input = $('chan-acid-all');
+    if (!input) return;
+    const raw = String(input.value || '').trim().replace(',', '.');
+    const value = Number(raw);
+    if (!raw || !Number.isFinite(value) || value <= 0) {
+      toast('Проверьте общий коэффициент лимонки');
+      input.focus();
+      return;
+    }
+
+    const count = Math.max(1, Math.min(20, lastChanCount || 1));
+    for (let i = 1; i <= count; i++) {
+      settings[`chanAcidPerMilk${i}`] = value;
+      const vatInput = $(`chan-acid-${i}`);
+      if (vatInput) vatInput.value = formatRaw(value);
+    }
+
+    saveSettings(settings);
+    calculateChan({ keepCurrentTab: true });
+    calculateProductSectionsFromFilling();
+    buildChanAcidSettingsFields(lastChanCount);
+    const commonInput = $('chan-acid-all');
+    if (commonInput) commonInput.value = formatRaw(value);
+    toast(`Лимонка ${formatRaw(value)} применена ко всем чанам`);
   }
 
   function saveChanAcidSettings() {
@@ -329,6 +366,7 @@
     }
     saveSettings(settings);
     calculateChan({ keepCurrentTab: true });
+    calculateProductSectionsFromFilling();
     buildChanAcidSettingsFields(lastChanCount);
     toast('Коэффициенты чанов сохранены');
   }
@@ -337,8 +375,9 @@
     const count = Math.max(1, Math.min(20, lastChanCount || 1));
     for (let i = 1; i <= count; i++) settings[`chanAcidPerMilk${i}`] = 1.34;
     saveSettings(settings);
-    buildChanAcidSettingsFields(count);
     calculateChan({ keepCurrentTab: true });
+    calculateProductSectionsFromFilling();
+    buildChanAcidSettingsFields(lastChanCount);
     toast('Коэффициенты чанов сброшены');
   }
 
@@ -576,13 +615,10 @@
     copyBtn.classList.remove('hidden');
     saveResultState('filling', results.innerHTML, lastFillingText);
 
-    // После расчёта начинки сразу обновляем разделы Классика/Трюфель,
-    // чтобы там уже был виден итог заявки без отдельного нажатия.
-    calculateProductSectionsFromFilling();
-
-    // И сразу обновляем раздел “Чан”,
-    // чтобы не нажимать отдельную кнопку во второй вкладке.
+    // Сначала строим распределение партий по чанам.
+    // Затем Классика/Трюфель используют коэффициент именно своего чана.
     calculateChan({ keepCurrentTab: true });
+    calculateProductSectionsFromFilling();
   }
 
   function readFillingProduct(isTruffle, results, copyBtn, options = {}) {
@@ -886,7 +922,9 @@
       pr.milkKg = plan.milkByPartyKg[i - 1];
       pr.milkLiters = prodRound(pr.milkKg / settings.milkDensity);
       pr.chanCmText = rulerText(pr.milkLiters);
-      pr.citricAcidG = prodRound(pr.milkKg * getAcidPerMilk(i));
+      pr.chanIndex = getPartyChanIndex(isTruffle, i, plan.parties);
+      pr.acidPerMilk = getChanAcidPerMilk(pr.chanIndex);
+      pr.citricAcidG = prodRound(pr.milkKg * pr.acidPerMilk);
       pr.rennetG = prodRound(pr.milkKg * settings.rennetPerMilk);
       pr.pieces = plan.piecesByParty[i - 1];
       pr.cagliataG = prodRound(pr.pieces * settings.cagliataPerPieceG);
@@ -1013,7 +1051,7 @@
       </div>
       <div class="section-title">Подробно по партиям</div>
       ${partyCards}
-      <div class="card note-card">Примечание: заявка в кг показывается как исходная. Штуки, молоко, начинка и главные результаты считаются с ОТК. Если заполнены коробки по партиям, количество партий берётся по числу значений, а ОТК добавляется отдельно и в коробки не входит. Кальятта расплав считается по ${formatRaw(settings.cagliataPerPieceG)} г на 1 шт. Соль в сливки считается по ${formatRaw(settings.creamSaltPerKgG)} г на 1 кг сливок. Начинка в 1 тазу считается как начинка с потерями / количество тазов. Молоко по партиям распределяется от общего количества с ОТК так, чтобы сумма партий точно совпадала с общим молоком.</div>
+      <div class="card note-card">Примечание: заявка в кг показывается как исходная. Штуки, молоко, начинка и главные результаты считаются с ОТК. Если заполнены коробки по партиям, количество партий берётся по числу значений, а ОТК добавляется отдельно и в коробки не входит. Кальятта расплав считается по ${formatRaw(settings.cagliataPerPieceG)} г на 1 шт. Соль в сливки считается по ${formatRaw(settings.creamSaltPerKgG)} г на 1 кг сливок. Начинка в 1 тазу считается как начинка с потерями / количество тазов. Молоко по партиям распределяется от общего количества с ОТК так, чтобы сумма партий точно совпадала с общим молоком. Коэффициент лимонной кислоты берётся из того чана, к которому распределена партия.</div>
     `;
   }
 
@@ -1030,8 +1068,10 @@
         <div class="divider"></div>
         ${line('Молоко', `${fmt(p.milkKg)} кг`)}
         ${line('Литры', `${fmt(p.milkLiters)} л`)}
-        ${line('Линейка чана', p.chanCmText)}
-        ${line('Лимонная кислота', `${fmt(p.citricAcidG)} г`)}
+        ${strongLine('Чан', `${p.chanIndex}`, 'primary')}
+        ${line('Линейка партии', p.chanCmText)}
+        ${line('Лимонка: молоко кг ×', formatRaw(p.acidPerMilk))}
+        ${strongLine('Лимонная кислота', `${fmt(p.citricAcidG)} г`, 'primary')}
         ${line('Фермент', `${fmt(p.rennetG)} г`)}
         <div class="divider"></div>
         ${strongLine('Тазов в партии', `${p.bowls}`, 'primary')}
@@ -1217,6 +1257,7 @@
         additionalPieces: 0,
         totalPieces: 0,
         totalMilkKg: 0,
+        milkByPartyKg: [],
         boxesByParty: null,
         boxesTotal: 0,
         usedBoxes: false,
@@ -1263,6 +1304,7 @@
       additionalPieces: plan.additionalPieces,
       totalPieces: plan.totalPieces,
       totalMilkKg: plan.totalMilkKg,
+      milkByPartyKg: plan.milkByPartyKg.slice(),
       boxesByParty: null,
       boxesTotal: 0,
       usedBoxes: false,
@@ -1304,7 +1346,9 @@
     const additionalPieces = piecesRound((classicPlan.additionalPieces || 0) + (trufflePlan.additionalPieces || 0));
     const totalPieces = piecesRound(classicPieces + trufflePieces);
     const requestWithOtkKg = totalPieces / settings.requestToPieces;
-    const totalMilkKg = milkRound(totalPieces * settings.milkPerPieceKg);
+    // Общее молоко совпадает с разделами продуктов, но по чанам оно делится
+    // независимо от партий — партии используются только как привязка к чанам.
+    const totalMilkKg = milkRound(classicPlan.totalMilkKg + trufflePlan.totalMilkKg);
     const boxesTotal = prodRound((classicPlan.boxesTotal || 0) + (trufflePlan.boxesTotal || 0));
 
     if (totalMilkKg <= 0) {
@@ -1315,8 +1359,9 @@
 
     const totalLiters = prodRound(totalMilkKg / settings.milkDensity);
     const rulerTotal = rulerText(totalLiters);
-    const chanLoads = splitTotalMilkToChans(totalMilkKg);
+    const chanLoads = splitPartiesToChans(classicPlan, trufflePlan, totalMilkKg);
     const chanCount = chanLoads.length;
+    lastChanLoads = chanLoads;
     lastChanCount = Math.max(1, chanCount);
     if ($('chanSettingsPanel') && !$('chanSettingsPanel').classList.contains('hidden')) {
       buildChanAcidSettingsFields(lastChanCount);
@@ -1385,6 +1430,7 @@
             ${metric('Штук всего с ОТК', `${fmt(d.totalPieces)} шт.`, 'soft-green')}
             ${d.additionalPieces > 0 ? metric('Доп. штуки всего', `+${fmt(d.additionalPieces)} шт.`, 'soft-blue') : ''}
             ${metric('Партии всего', `${d.parties}`, 'soft-blue')}
+            ${metric('Партии по чанам', d.chanLoads.map((load) => `Ч${load.index}: ${load.partyCount}`).join(' / '), 'soft-green')}
             ${d.boxesTotal > 0 ? metric('Коробки всего', `${fmt(d.boxesTotal)} кор.`, 'soft-orange') : ''}
             ${metric('Молоко всего', `${fmt(d.totalMilkKg)} кг`, 'soft-blue')}
             ${metric('Литры всего', `${fmt(d.totalLiters)} л`, 'soft-green')}
@@ -1400,6 +1446,7 @@
       ${d.chanLoads.map((load) => `
         <div class="card">
           <h3 class="chan-title">Чан ${load.index}</h3>
+          ${strongLine('Партии', `${load.partyCount} • ${formatChanParties(load.parties)}`, 'success')}
           ${strongLine('Молоко', `${fmt(load.milkKg)} кг`, 'primary')}
           ${strongLine('Литры', `${fmt(load.liters)} л`, 'success')}
           ${strongLine('Набрать по линейке', load.rulerText, 'warning')}
@@ -1425,27 +1472,122 @@
     `;
   }
 
-  function splitTotalMilkToChans(totalMilkKg) {
+  function splitPartiesToChans(classicPlan, trufflePlan, totalMilkKg) {
     const maxMilkInChanKg = settings.maxChanMilkKg > 0 ? settings.maxChanMilkKg : 280;
     let chanCount = Math.ceil(totalMilkKg / maxMilkInChanKg);
     if (chanCount < 1) chanCount = 1;
+    if (chanCount > 20) chanCount = 20;
+
+    const partyItems = buildChanPartyItems(classicPlan, trufflePlan);
+
+    // ВАЖНО: партии здесь только привязываются к чанам как метки для
+    // коэффициента лимонной кислоты. Их молоко НЕ складывается в объём чана.
+    // Само молоко всегда делится от общего количества по рассчитанному числу
+    // чанов, поэтому ни один чан не превышает установленный лимит.
     const milkByChanKg = splitWholeKgToParts(totalMilkKg, chanCount);
+    const partyCounts = splitCountToParts(partyItems.length, chanCount);
     const loads = [];
-    for (let i = 1; i <= chanCount && i <= 20; i++) {
-      const milkKg = milkByChanKg[i - 1];
+    lastPartyChanMap = {};
+    let cursor = 0;
+
+    for (let i = 1; i <= chanCount; i++) {
+      const count = partyCounts[i - 1] || 0;
+      const assigned = partyItems.slice(cursor, cursor + count);
+      cursor += count;
+      assigned.forEach((party) => {
+        lastPartyChanMap[party.key] = i;
+      });
+
+      const milkKg = Number(milkByChanKg[i - 1]) || 0;
       const liters = prodRound(milkKg / settings.milkDensity);
       const acidPerMilk = getChanAcidPerMilk(i);
+      const acidG = prodRound(milkKg * acidPerMilk);
+      const rennetG = prodRound(milkKg * settings.rennetPerMilk);
       loads.push({
         index: i,
-        milkKg,
+        parties: assigned,
+        partyCount: assigned.length,
+        milkKg: prodRound(milkKg),
         liters,
         rulerText: rulerText(liters),
         acidPerMilk,
-        acidG: prodRound(milkKg * acidPerMilk),
-        rennetG: prodRound(milkKg * settings.rennetPerMilk)
+        acidG,
+        rennetG
       });
     }
     return loads;
+  }
+
+  function buildChanPartyItems(classicPlan, trufflePlan) {
+    const classic = [];
+    const truffle = [];
+    if (classicPlan && classicPlan.active) {
+      for (let i = 0; i < classicPlan.parties; i++) {
+        classic.push({
+          key: `classic:${i + 1}`,
+          type: 'classic',
+          label: 'Классика',
+          partyIndex: i + 1,
+          milkKg: Number(classicPlan.milkByPartyKg && classicPlan.milkByPartyKg[i]) || 0
+        });
+      }
+    }
+    if (trufflePlan && trufflePlan.active) {
+      for (let i = 0; i < trufflePlan.parties; i++) {
+        truffle.push({
+          key: `truffle:${i + 1}`,
+          type: 'truffle',
+          label: 'Трюфель',
+          partyIndex: i + 1,
+          milkKg: Number(trufflePlan.milkByPartyKg && trufflePlan.milkByPartyKg[i]) || 0
+        });
+      }
+    }
+
+    // Трюфель начинаем с первого чана и, когда есть классика, ставим рядом
+    // соответствующую партию классики. Дальше партии идут попарно по номерам.
+    const ordered = [];
+    const max = Math.max(truffle.length, classic.length);
+    for (let i = 0; i < max; i++) {
+      if (truffle[i]) ordered.push(truffle[i]);
+      if (classic[i]) ordered.push(classic[i]);
+    }
+    return ordered;
+  }
+
+  function splitCountToParts(total, parts) {
+    const count = Math.max(1, Math.round(parts || 1));
+    const base = Math.floor(total / count);
+    const remainder = total % count;
+    return Array.from({ length: count }, (_, i) => base + (i < remainder ? 1 : 0));
+  }
+
+  function partyMapKey(isTruffle, partyIndex) {
+    return `${isTruffle ? 'truffle' : 'classic'}:${partyIndex}`;
+  }
+
+  function getPartyChanIndex(isTruffle, partyIndex, productParties) {
+    const mapped = Number(lastPartyChanMap[partyMapKey(isTruffle, partyIndex)]);
+    if (Number.isFinite(mapped) && mapped > 0) return mapped;
+
+    const chans = Math.max(1, Math.min(lastChanCount || 1, productParties || 1));
+    const counts = splitCountToParts(productParties || 1, chans);
+    let end = 0;
+    for (let i = 0; i < counts.length; i++) {
+      end += counts[i];
+      if (partyIndex <= end) return i + 1;
+    }
+    return chans;
+  }
+
+  function formatChanParties(parties) {
+    if (!parties || !parties.length) return '—';
+    const truffle = parties.filter((p) => p.type === 'truffle').map((p) => p.partyIndex);
+    const classic = parties.filter((p) => p.type === 'classic').map((p) => p.partyIndex);
+    const chunks = [];
+    if (truffle.length) chunks.push(`Трюфель ${truffle.join(', ')}`);
+    if (classic.length) chunks.push(`Классика ${classic.join(', ')}`);
+    return chunks.join(' • ');
   }
 
   function parseOptionalNumber(raw, label, results) {
@@ -1638,7 +1780,9 @@
       sb += `Кальятта расплав на партию: ${fmt(p.cagliataG)} г\n`;
       sb += `Молоко: ${fmt(p.milkKg)} кг\n`;
       sb += `Литры: ${fmt(p.milkLiters)} л\n`;
-      sb += `Линейка чана: ${p.chanCmText}\n`;
+      sb += `Чан: ${p.chanIndex}\n`;
+      sb += `Линейка партии: ${p.chanCmText}\n`;
+      sb += `Лимонка: молоко кг × ${formatRaw(p.acidPerMilk)}\n`;
       sb += `Лимонная кислота: ${fmt(p.citricAcidG)} г\n`;
       sb += `Фермент: ${fmt(p.rennetG)} г\n`;
       sb += `Тазов в партии: ${p.bowls}\n`;
@@ -1692,12 +1836,14 @@
     sb += `Максимум на 1 чан: ${fmt(settings.maxChanMilkKg)} кг\n\n`;
     sb += 'Деление общего молока\n';
     sb += `Чанов нужно: ${d.chanCount}\n`;
+    sb += `Партии по чанам: ${d.chanLoads.map((load) => `Ч${load.index}: ${load.partyCount}`).join(' / ')}\n`;
     sb += `Молоко по чанам: ${joinChanMilkKg(d.chanLoads)}\n`;
     sb += `Литры на 1 чан примерно: ${fmt(d.litersPerChan)} л\n`;
     sb += `Линейка чана: ${d.rulerPerChan}\n\n`;
     sb += 'Чаны\n';
     d.chanLoads.forEach((load) => {
       sb += `Чан ${load.index}\n`;
+      sb += `Партии: ${load.partyCount} • ${formatChanParties(load.parties)}\n`;
       sb += `Молоко: ${fmt(load.milkKg)} кг\n`;
       sb += `Литры: ${fmt(load.liters)} л\n`;
       sb += `Линейка: ${load.rulerText}\n`;
