@@ -33,7 +33,7 @@
     creamSaltPerKgG: 10,
     bowlCapacityG: 3000,
     truffleFillingPerPieceG: 95,
-    truffleBowlCapacityG: 2067,
+    truffleBowlCapacityG: 2100,
     bowlLossG: 65,
     dispenserLossG: 110,
     stracciatellaDivisor: 2
@@ -74,7 +74,7 @@
         ['saltRate', 'Соль кальятта/страчителла: масса ×', '0,045'],
         ['creamSaltPerKgG', 'Соль в сливки: на 1 кг сливок, г', '10'],
         ['bowlCapacityG', 'Классика: максимум общего в 1 тазу, г', '3000'],
-        ['truffleBowlCapacityG', 'Трюфель: максимум общего в 1 тазу, г', '2067'],
+        ['truffleBowlCapacityG', 'Трюфель: максимум общего в 1 тазу, г', '2100'],
         ['bowlLossG', 'Потери на 1 таз, г', '65'],
         ['dispenserLossG', 'Потери дозатора в 1 партии, г', '110'],
         ['stracciatellaDivisor', 'Страчителла: начинка /', '2']
@@ -467,7 +467,7 @@
   function addStartMessages() {
     $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля. Можно заполнить только один вид. Партии можно оставить пустыми — они подставятся автоматически. Данные сразу переносятся в разделы Классика/Трюфель, а после расчёта обновляются их итоги и раздел Чан. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
     $('burrataResults').innerHTML = startCard('Введите заявку классики в кг. Партии можно не указывать — они подставятся автоматически. Также можно указать коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
-    $('truffleResults').innerHTML = startCard('Введите заявку трюфельной классики. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2067 г на таз.');
+    $('truffleResults').innerHTML = startCard('Введите заявку трюфельной классики. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2100 г на таз.');
     $('chanResults').innerHTML = startCard('Заполните первый раздел “Начинка” и нажмите “Рассчитать начинку” — чан пересчитается автоматически.');
   }
 
@@ -1675,7 +1675,7 @@
 
     // Начинка с потерями в одном тазу должна быть строго не больше нормы:
     // для классики — не больше 3000 г или значения из настроек,
-    // для трюфеля — не больше 2067 г или значения из настроек.
+    // для трюфеля — не больше 2100 г или значения из настроек.
     while (bowls < 10000) {
       const totalWithLoss = prodRound(fillingNoLossG + prodRound(bowls * bowlLossG) + dispenserLossG);
       const perBowl = prodRound(totalWithLoss / bowls);
@@ -1860,6 +1860,11 @@
 
   function restoreCachedAppState() {
     const formState = loadJson(FORM_STORAGE_KEY, {});
+    // Keep the filling-panel field in sync with the new v1.13.28 default as well.
+    if (String(formState.fillingTruffleBowlCapacityG ?? '').replace(',', '.') === '2067') {
+      formState.fillingTruffleBowlCapacityG = '2100';
+      try { localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formState)); } catch (e) {}
+    }
     FORM_INPUT_IDS.forEach((id) => {
       const input = $(id);
       if (input && formState[id] !== undefined) input.value = formState[id];
@@ -1961,6 +1966,12 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return { ...DEFAULTS };
       const parsed = JSON.parse(raw);
+      // v1.13.28: migrate the previous default truffle bowl maximum (2067 g) to 2100 g.
+      // Any other custom value is preserved.
+      if (Number(parsed.truffleBowlCapacityG) === 2067) {
+        parsed.truffleBowlCapacityG = 2100;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      }
       return { ...DEFAULTS, ...parsed };
     } catch (e) {
       return { ...DEFAULTS };

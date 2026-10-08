@@ -490,7 +490,7 @@ button, input { font: inherit; }
   margin-bottom: 4px;
 }
 
-/* v1.13.27: общий коэффициент лимонки для всех чанов */
+/* v1.13.28: общий коэффициент лимонки для всех чанов */
 .chan-acid-all-row {
   padding-bottom: 18px;
   margin-bottom: 14px;
