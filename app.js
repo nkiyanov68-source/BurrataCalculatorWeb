@@ -1686,9 +1686,16 @@
   }
 
   function salsaJarForFilling(fillingPerBowlG) {
-    if (fillingPerBowlG >= 1929) return 20;
-    if (fillingPerBowlG >= 1675) return 18;
-    return 16;
+    // v1.13.30: шкала сальсы на баночку по наполнению одного таза.
+    // 900–1099 → 10 г; 1100–1299 → 12 г; 1300–1499 → 14 г;
+    // 1500–1699 → 16 г; 1700–1899 → 18 г; 1900–2100 → 20 г.
+    // Значения ниже 900 г остаются на минимуме 10 г; выше 2100 г не возникают при стандартном лимите таза.
+    if (fillingPerBowlG >= 1900) return 20;
+    if (fillingPerBowlG >= 1700) return 18;
+    if (fillingPerBowlG >= 1500) return 16;
+    if (fillingPerBowlG >= 1300) return 14;
+    if (fillingPerBowlG >= 1100) return 12;
+    return 10;
   }
 
   function getCreamSubtraction(stracciatellaG) {
