@@ -686,10 +686,10 @@
       p.creamG = prodRound(p.stracciatellaG - p.creamSubtractionG);
       p.creamPerBowlG = prodRound(p.creamG / p.bowls);
       if (isTruffle) {
-        p.salsaJarG = salsaJarForFilling(p.fillingPerBowlG);
-        p.salsaTotalG = prodRound(p.salsaJarG * p.bowls);
+        p.salsaPerBowlG = salsaPerBowlForFilling(p.fillingPerBowlG);
+        p.salsaTotalG = prodRound(p.salsaPerBowlG * p.bowls);
       } else {
-        p.salsaJarG = 0;
+        p.salsaPerBowlG = 0;
         p.salsaTotalG = 0;
       }
       totalCagliataG += p.cagliataG;
@@ -760,7 +760,7 @@
         ${metric('Кальятта расплав', `${fmt(data.totals.cagliataG)} г`, 'soft-green')}
         ${metric('ОТК всего', `+${fmt(data.totals.extraPieces)} шт.`, 'soft-blue')}
         ${data.totals.additionalPieces > 0 ? metric('Доп. штуки', `+${fmt(data.totals.additionalPieces)} шт.`, 'soft-blue') : ''}
-        ${data.totals.salsaG > 0 ? metric('Сальса трюфель', `${fmt(data.totals.salsaG)} г`, 'soft-orange') : ''}
+        ${data.totals.salsaG > 0 ? metric('Сальса трюфель всего', `${fmt(data.totals.salsaG)} г`, 'soft-orange') : ''}
       </div>
       <details class="collapsible-section">
         <summary class="section-title collapsible-summary">Классика / трюфель</summary>
@@ -770,7 +770,7 @@
       </details>
       <div class="section-title">По партиям</div>
       ${partyCards}
-      <div class="card note-card">Эта главная страница считает начинку и автоматически обновляет раздел “Чан”. Коробки не учитываются, соль не выводится. ОТК, дополнительные штуки и максимум общего количества в 1 тазу находятся в “+ Настройки начинки”.</div>
+      <div class="card note-card">Эта главная страница считает начинку и автоматически обновляет раздел “Чан”. Для трюфеля сальса в карточке партии указана на 1 таз, рядом выводится сальса всего. Коробки не учитываются, соль не выводится. ОТК, дополнительные штуки и максимум общего количества в 1 тазу находятся в “+ Настройки начинки”.</div>
     `;
   }
 
@@ -785,7 +785,7 @@
         ${strongLine('Начинка с потерями', `${fmt(p.fillingWithLossG)} г`, 'warning')}
         ${strongLine('Тазов', `${p.bowls}`, 'primary')}
         ${line('Страчителла / сливки', `${fmt(p.stracciatellaG)} г / ${fmt(p.creamG)} г`)}
-        ${p.salsaG > 0 ? line('Сальса', `${fmt(p.salsaG)} г`) : ''}
+        ${p.salsaG > 0 ? line('Сальса всего', `${fmt(p.salsaG)} г`) : ''}
       </div>
     `;
   }
@@ -804,7 +804,7 @@
         ${line('Общее в 1 тазу', `${fmt(p.fillingPerBowlG)} г`)}
         ${line('Страчителла на 1 таз', `${fmt(p.stracciatellaPerBowlG)} г`)}
         ${line('Сливки на 1 таз', `${fmt(p.creamPerBowlG)} г`)}
-        ${p.isTruffle ? line('Сальса всего', `${fmt(p.salsaTotalG)} г`) : ''}
+        ${p.isTruffle ? line('Сальса на таз', `${fmt(p.salsaPerBowlG)} г`) + line('Сальса всего', `${fmt(p.salsaTotalG)} г`) : ''}
       </div>
     `).join('');
   }
@@ -838,9 +838,10 @@
       sb += `Тазов: ${product.bowls}\n`;
       sb += `Страчителла: ${fmt(product.stracciatellaG)} г\n`;
       sb += `Сливки: ${fmt(product.creamG)} г\n`;
-      if (product.salsaG > 0) sb += `Сальса: ${fmt(product.salsaG)} г\n`;
+      if (product.salsaG > 0) sb += `Сальса всего: ${fmt(product.salsaG)} г\n`;
       product.partyResults.forEach((p) => {
         sb += `  Партия ${p.index}: ${fmt(p.pieces)} шт., тазов ${p.bowls}, начинка ${fmt(p.fillingWithLossG)} г, в 1 тазу ${fmt(p.fillingPerBowlG)} г, страчителла/сливки на таз ${fmt(p.stracciatellaPerBowlG)} / ${fmt(p.creamPerBowlG)} г\n`;
+        if (p.isTruffle) sb += `  Сальса на таз: ${fmt(p.salsaPerBowlG)} г, сальса всего: ${fmt(p.salsaTotalG)} г\n`;
       });
       sb += '\n';
     });
@@ -945,10 +946,10 @@
       pr.saltCreamG = prodRound((pr.creamG / 1000) * settings.creamSaltPerKgG);
       pr.saltG = prodRound(pr.saltCagliataG + pr.saltStracciatellaG + pr.saltCreamG);
       if (isTruffle) {
-        pr.salsaJarG = salsaJarForFilling(pr.fillingPerBowlG);
-        pr.salsaTotalG = prodRound(pr.salsaJarG * pr.bowls);
+        pr.salsaPerBowlG = salsaPerBowlForFilling(pr.fillingPerBowlG);
+        pr.salsaTotalG = prodRound(pr.salsaPerBowlG * pr.bowls);
       } else {
-        pr.salsaJarG = 0;
+        pr.salsaPerBowlG = 0;
         pr.salsaTotalG = 0;
       }
 
@@ -1082,9 +1083,9 @@
         ${strongLine('Сливки на 1 таз', `${fmt(p.creamPerBowlG)} г`, 'primary')}
         ${p.hasSalsa ? `
           <div class="divider"></div>
-          ${strongLine('Сальса на баночку', `${fmt(p.salsaJarG)} г`, 'warning')}
+          ${strongLine('Сальса на таз', `${fmt(p.salsaPerBowlG)} г`, 'warning')}
           ${strongLine('Сальса всего', `${fmt(p.salsaTotalG)} г`, 'primary')}
-          ${p.salsaJarG === 18 ? line('Подсказка', '18 г: можно перекинуть 2 г из одной банки') : ''}
+          ${p.salsaPerBowlG === 18 ? line('Подсказка', '18 г: можно перекинуть 2 г из одной банки') : ''}
         ` : ''}
         <div class="divider"></div>
         ${line('Страчителла всего в партии', `${fmt(p.stracciatellaG)} г`)}
@@ -1685,8 +1686,8 @@
     return bowls;
   }
 
-  function salsaJarForFilling(fillingPerBowlG) {
-    // v1.13.30: шкала сальсы на баночку по наполнению одного таза.
+  function salsaPerBowlForFilling(fillingPerBowlG) {
+    // v1.13.31: шкала сальсы на таз по наполнению одного таза.
     // 900–1099 → 10 г; 1100–1299 → 12 г; 1300–1499 → 14 г;
     // 1500–1699 → 16 г; 1700–1899 → 18 г; 1900–2100 → 20 г.
     // Значения ниже 900 г остаются на минимуме 10 г; выше 2100 г не возникают при стандартном лимите таза.
@@ -1798,7 +1799,7 @@
       sb += `Страчителла на 1 таз: ${fmt(p.stracciatellaPerBowlG)} г\n`;
       sb += `Сливки на 1 таз: ${fmt(p.creamPerBowlG)} г\n`;
       if (p.hasSalsa) {
-        sb += `Сальса на баночку: ${fmt(p.salsaJarG)} г\n`;
+        sb += `Сальса на таз: ${fmt(p.salsaPerBowlG)} г\n`;
         sb += `Сальса всего: ${fmt(p.salsaTotalG)} г\n`;
       }
       sb += `Страчителла всего в партии: ${fmt(p.stracciatellaG)} г\n`;
