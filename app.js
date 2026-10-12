@@ -123,7 +123,16 @@
     showTab(cachedTab || 'filling');
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      let swReloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (swReloading) return;
+        swReloading = true;
+        window.location.reload();
+      });
+
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+        .then((registration) => registration.update())
+        .catch(() => {});
     }
   });
 
