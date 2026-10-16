@@ -239,6 +239,10 @@ button, input { font: inherit; }
   line-height: 1.1;
   margin: 5px 0;
 }
+.header-card .filling-parties-big {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
 .header-card .sub {
   color: #eaf2ff;
   font-size: 14px;

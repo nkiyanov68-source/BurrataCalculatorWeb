@@ -70,7 +70,7 @@
     {
       title: 'Начинка и потери',
       fields: [
-        ['cagliataPerPieceG', 'Кальятта расплав: 1 шт ×, г', '40'],
+        ['cagliataPerPieceG', 'Кальятта для мешочков: 1 шт ×, г', '40'],
         ['saltRate', 'Соль кальятта/страчителла: масса ×', '0,045'],
         ['creamSaltPerKgG', 'Соль в сливки: на 1 кг сливок, г', '10'],
         ['bowlCapacityG', 'Классика: максимум общего в 1 тазу, г', '3000'],
@@ -761,26 +761,23 @@
     const productCards = [data.classic, data.truffle].map((p) => renderFillingProductSummary(p)).join('');
     const partyCards = data.products.map((p) => renderFillingPartyGroup(p)).join('');
     return `
-      ${headerCard('Итог начинки', `${fmt(data.totals.requestKg)} кг • ${fmt(data.totals.totalPieces)} шт.`, `${data.totals.parties} парт. • без коробок и без соли`)}
+      <div class="header-card">
+        <div class="kicker">Общий итог</div>
+        <div class="big">${escapeHtml(`${fmt(data.totals.requestKg)} кг • ${fmt(data.totals.totalPieces)} шт.`)}</div>
+        <div class="big filling-parties-big">${escapeHtml(`${data.totals.parties} парт.`)}</div>
+      </div>
       <div class="section-title">Главные результаты</div>
       <div class="metrics-grid">
-        ${metric('Начинка всего без потерь', `${fmt(data.totals.fillingNoLossG)} г`, 'soft-green')}
         ${metric('Начинка с потерями', `${fmt(data.totals.fillingWithLossG)} г`, 'soft-orange')}
         ${metric('Тазов всего', `${data.totals.bowls}`, 'soft-blue')}
         ${metric('Страчителла всего', `${fmt(data.totals.stracciatellaG)} г`, 'soft-green')}
         ${metric('Сливки всего', `${fmt(data.totals.creamG)} г`, 'soft-orange')}
         ${metric('Молоко', `${fmt(data.totals.milkKg)} кг`, 'soft-blue')}
-        ${metric('Кальятта расплав для мешочков', `${fmt(data.totals.cagliataG)} г`, 'soft-green')}
+        ${metric('Кальятта для мешочков', `${fmt(data.totals.cagliataG)} г`, 'soft-green')}
         ${metric('ОТК всего', `+${fmt(data.totals.extraPieces)} шт.`, 'soft-blue')}
         ${data.totals.additionalPieces > 0 ? metric('Доп. штуки', `+${fmt(data.totals.additionalPieces)} шт.`, 'soft-blue') : ''}
         ${data.totals.salsaG > 0 ? metric('Сальса трюфель всего', `${fmt(data.totals.salsaG)} г`, 'soft-orange') : ''}
       </div>
-      <details class="collapsible-section">
-        <summary class="section-title collapsible-summary">Классика / трюфель</summary>
-        <div class="collapsible-body">
-          ${productCards}
-        </div>
-      </details>
       <div class="section-title">По партиям</div>
       ${partyCards}
       <div class="card note-card">Эта главная страница считает начинку и автоматически обновляет раздел “Чан”. Для трюфеля сальса в карточке партии указана на 1 таз, рядом выводится сальса всего. Коробки не учитываются, соль не выводится. ОТК, дополнительные штуки и максимум общего количества в 1 тазу находятся в “+ Настройки начинки”.</div>
@@ -793,7 +790,7 @@
       <div class="card">
         ${strongLine(p.label, `${fmt(p.requestKg)} кг • ${p.parties} парт. • ${fmt(p.totalPieces)} шт. всего`, 'primary')}
         ${line('Штук без ОТК / ОТК / доп.', `${fmt(p.basePieces)} / +${fmt(p.extraPieces)} / +${fmt(p.additionalPieces)} шт.`)}
-        ${line('Кальятта расплав', `${fmt(p.cagliataG)} г`)}
+        ${line('Кальятта для мешочков', `${fmt(p.cagliataG)} г`)}
         ${line('Начинка всего без потерь', `${fmt(p.fillingNoLossG)} г`)}
         ${strongLine('Начинка с потерями', `${fmt(p.fillingWithLossG)} г`, 'warning')}
         ${strongLine('Тазов', `${p.bowls}`, 'primary')}
@@ -810,7 +807,7 @@
         <h3 class="party-title">${escapeHtml(product.label)} • партия ${p.index}</h3>
         ${line('Штук без ОТК / ОТК / доп.', `${fmt(p.basePieces)} / +${fmt(p.extraPieces)} / +${fmt(p.additionalPieces)} шт.`)}
         ${strongLine('Штук всего', `${fmt(p.pieces)} шт.`, 'success')}
-        ${line('Кальятта расплав', `${fmt(p.cagliataG)} г`)}
+        ${line('Кальятта для мешочков', `${fmt(p.cagliataG)} г`)}
         ${strongLine('Тазов', `${p.bowls}`, 'primary')}
         ${line('Начинка всего без потерь', `${fmt(p.fillingNoLossG)} г`)}
         ${strongLine('Начинка с потерями', `${fmt(p.fillingWithLossG)} г`, 'warning')}
@@ -829,7 +826,7 @@
     sb += `Штук всего с ОТК: ${fmt(data.totals.totalPieces)} шт.\n`;
     sb += `ОТК всего: +${fmt(data.totals.extraPieces)} шт.\n`;
     if (data.totals.additionalPieces > 0) sb += `Дополнительные штуки всего: +${fmt(data.totals.additionalPieces)} шт.\n`;
-    sb += `Кальятта расплав для мешочков: ${fmt(data.totals.cagliataG)} г\n`;
+    sb += `Кальятта для мешочков: ${fmt(data.totals.cagliataG)} г\n`;
     sb += `Молоко: ${fmt(data.totals.milkKg)} кг\n`;
     sb += `Начинка всего без потерь: ${fmt(data.totals.fillingNoLossG)} г\n`;
     sb += `Начинка с потерями всего: ${fmt(data.totals.fillingWithLossG)} г\n`;
@@ -846,7 +843,7 @@
       sb += `ОТК: +${fmt(product.extraPieces)} шт.\n`;
       if (product.additionalPieces > 0) sb += `Дополнительные штуки: +${fmt(product.additionalPieces)} шт.\n`;
       sb += `Штук всего: ${fmt(product.totalPieces)} шт.\n`;
-      sb += `Кальятта расплав: ${fmt(product.cagliataG)} г\n`;
+      sb += `Кальятта для мешочков: ${fmt(product.cagliataG)} г\n`;
       sb += `Начинка всего без потерь: ${fmt(product.fillingNoLossG)} г\n`;
       sb += `Начинка с потерями: ${fmt(product.fillingWithLossG)} г\n`;
       sb += `Тазов: ${product.bowls}\n`;
@@ -1050,7 +1047,7 @@
         ${metric('Заявка', `${fmt(data.requestKg)} кг`, 'soft-green')}
         ${metric('Штук всего с ОТК', `${fmt(data.totalPieces)} шт.`, 'soft-green')}
         ${data.additionalPieces > 0 ? metric('Доп. штуки', `+${fmt(data.additionalPieces)} шт.`, 'soft-blue') : ''}
-        ${metric('Кальятта расплав', `${fmt(data.totalCagliataG)} г`, 'soft-orange')}
+        ${metric('Кальятта для мешочков', `${fmt(data.totalCagliataG)} г`, 'soft-orange')}
         ${metric('Молоко', `${fmt(data.totalMilkKg)} кг`, 'soft-blue')}
         ${metric('Начинка с потерями', `${fmt(data.totalFillingWithLosses)} г`, 'soft-orange')}
         ${metric('Тазов всего', `${data.totalBowls}`, 'soft-blue')}
@@ -1066,7 +1063,7 @@
       </div>
       <div class="section-title">Подробно по партиям</div>
       ${partyCards}
-      <div class="card note-card">Примечание: заявка в кг показывается как исходная. Штуки, молоко, начинка и главные результаты считаются с ОТК. Если заполнены коробки по партиям, количество партий берётся по числу значений, а ОТК добавляется отдельно и в коробки не входит. Кальятта расплав считается по ${formatRaw(settings.cagliataPerPieceG)} г на 1 шт. Соль в сливки считается по ${formatRaw(settings.creamSaltPerKgG)} г на 1 кг сливок. Начинка в 1 тазу считается как начинка с потерями / количество тазов. Молоко по партиям распределяется от общего количества с ОТК так, чтобы сумма партий точно совпадала с общим молоком. Коэффициент лимонной кислоты берётся из того чана, к которому распределена партия.</div>
+      <div class="card note-card">Примечание: заявка в кг показывается как исходная. Штуки, молоко, начинка и главные результаты считаются с ОТК. Если заполнены коробки по партиям, количество партий берётся по числу значений, а ОТК добавляется отдельно и в коробки не входит. Кальятта для мешочков считается по ${formatRaw(settings.cagliataPerPieceG)} г на 1 шт. Соль в сливки считается по ${formatRaw(settings.creamSaltPerKgG)} г на 1 кг сливок. Начинка в 1 тазу считается как начинка с потерями / количество тазов. Молоко по партиям распределяется от общего количества с ОТК так, чтобы сумма партий точно совпадала с общим молоком. Коэффициент лимонной кислоты берётся из того чана, к которому распределена партия.</div>
     `;
   }
 
@@ -1079,7 +1076,7 @@
         ${line('ОТК', `+${fmt(p.extraPieces)} шт.`)}
         ${p.additionalPieces > 0 ? line('Дополнительные штуки', `+${fmt(p.additionalPieces)} шт.`) : ''}
         ${strongLine('Штук всего в партии', `${fmt(p.pieces)} шт.`, 'success')}
-        ${strongLine('Кальятта расплав на партию', `${fmt(p.cagliataG)} г`, 'warning')}
+        ${strongLine('Кальятта для мешочков на партию', `${fmt(p.cagliataG)} г`, 'warning')}
         <div class="divider"></div>
         ${line('Молоко', `${fmt(p.milkKg)} кг`)}
         ${line('Литры', `${fmt(p.milkLiters)} л`)}
@@ -1444,14 +1441,10 @@
             ${metric('Заявка всего', `${fmt(d.totalRequestKg)} кг`, 'soft-green')}
             ${metric('Штук всего с ОТК', `${fmt(d.totalPieces)} шт.`, 'soft-green')}
             ${d.additionalPieces > 0 ? metric('Доп. штуки всего', `+${fmt(d.additionalPieces)} шт.`, 'soft-blue') : ''}
-            ${metric('Партии всего', `${d.parties}`, 'soft-blue')}
-            ${metric('Партии по чанам', d.chanLoads.map((load) => `Ч${load.index}: ${load.partyCount}`).join(' / '), 'soft-green')}
             ${d.boxesTotal > 0 ? metric('Коробки всего', `${fmt(d.boxesTotal)} кор.`, 'soft-orange') : ''}
             ${metric('Молоко всего', `${fmt(d.totalMilkKg)} кг`, 'soft-blue')}
             ${metric('Литры всего', `${fmt(d.totalLiters)} л`, 'soft-green')}
             ${metric('Чанов нужно', `${d.chanCount}`, 'soft-orange')}
-            ${metric('Кг по чанам', joinChanMilkKg(d.chanLoads), 'soft-blue')}
-            ${metric('Литры на чан', `${fmt(d.litersPerChan)} л`, 'soft-green')}
             ${metric('Лимонка всего', `${fmt(d.totalAcid)} г`, 'soft-blue')}
             ${metric('Фермент всего', `${fmt(d.totalRennet)} г`, 'soft-blue')}
           </div>
@@ -1701,7 +1694,7 @@
   }
 
   function salsaPerBowlForFilling(fillingPerBowlG) {
-    // v1.13.34: сальса на таз растёт на 2 г каждые 200 г наполнения.
+    // v1.13.36: сальса на таз растёт на 2 г каждые 200 г наполнения.
     // 900–1099 → 10 г; 1100–1299 → 12 г; ...;
     // 2100–2299 → 22 г; 2300–2499 → 24 г; 2900–3099 → 30 г и далее по той же последовательности.
     const filling = Number(fillingPerBowlG) || 0;
@@ -1774,7 +1767,7 @@
     sb += 'Главные результаты\n';
     sb += `Заявка: ${fmt(d.requestKg)} кг\n`;
     sb += `Штук всего с ОТК: ${fmt(d.totalPieces)} шт.\n`;
-    sb += `Кальятта расплав всего: ${fmt(d.totalCagliataG)} г\n`;
+    sb += `Кальятта для мешочков всего: ${fmt(d.totalCagliataG)} г\n`;
     sb += `Молоко всего: ${fmt(d.totalMilkKg)} кг\n`;
     sb += `Молоко по партиям: ${joinPartyMilkKg(d.partyResults)}\n`;
     sb += `Лимонная кислота всего: ${fmt(d.totalAcid)} г\n`;
@@ -1795,7 +1788,7 @@
       sb += `Штук без ОТК: ${fmt(p.basePieces)} шт.\n`;
       sb += `ОТК: +${fmt(p.extraPieces)} шт.\n`;
       sb += `Штук всего в партии: ${fmt(p.pieces)} шт.\n`;
-      sb += `Кальятта расплав на партию: ${fmt(p.cagliataG)} г\n`;
+      sb += `Кальятта для мешочков на партию: ${fmt(p.cagliataG)} г\n`;
       sb += `Молоко: ${fmt(p.milkKg)} кг\n`;
       sb += `Литры: ${fmt(p.milkLiters)} л\n`;
       sb += `Чан: ${p.chanIndex}\n`;
@@ -1819,7 +1812,7 @@
       sb += `Соль в сливки: ${fmt(p.saltCreamG)} г\n`;
       sb += `Соль всего на партию: ${fmt(p.saltG)} г\n\n`;
     });
-    sb += `Округление 0,6 применяется как раньше. Заявка в кг показывается как исходная, а штуки и главные результаты считаются с ОТК. Кальятта расплав считается по ${formatRaw(settings.cagliataPerPieceG)} г на 1 шт. Соль в сливки считается по ${formatRaw(settings.creamSaltPerKgG)} г на 1 кг сливок. Молоко по партиям делится от общего количества с ОТК так, чтобы сумма партий точно совпадала с общим молоком.\n`;
+    sb += `Округление 0,6 применяется как раньше. Заявка в кг показывается как исходная, а штуки и главные результаты считаются с ОТК. Кальятта для мешочков считается по ${formatRaw(settings.cagliataPerPieceG)} г на 1 шт. Соль в сливки считается по ${formatRaw(settings.creamSaltPerKgG)} г на 1 кг сливок. Молоко по партиям делится от общего количества с ОТК так, чтобы сумма партий точно совпадала с общим молоком.\n`;
     return sb;
   }
 
