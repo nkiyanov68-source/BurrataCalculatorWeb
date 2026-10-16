@@ -610,6 +610,7 @@
       totalPieces: products.reduce((sum, p) => sum + p.totalPieces, 0),
       additionalPieces: products.reduce((sum, p) => sum + p.additionalPieces, 0),
       cagliataG: prodRound(products.reduce((sum, p) => sum + p.cagliataG, 0)),
+      milkKg: milkRound(products.reduce((sum, p) => sum + p.milkKg, 0)),
       fillingNoLossG: prodRound(products.reduce((sum, p) => sum + p.fillingNoLossG, 0)),
       fillingWithLossG: prodRound(products.reduce((sum, p) => sum + p.fillingWithLossG, 0)),
       bowls: products.reduce((sum, p) => sum + p.bowls, 0),
@@ -722,6 +723,7 @@
       additionalPieces: plan.additionalPieces,
       totalPieces: plan.totalPieces,
       cagliataG: prodRound(totalCagliataG),
+      milkKg: plan.totalMilkKg,
       fillingNoLossG: prodRound(totalFillingNoLossG),
       fillingWithLossG: prodRound(totalFillingWithLossG),
       bowls: totalBowls,
@@ -744,6 +746,7 @@
       additionalPieces: 0,
       totalPieces: 0,
       cagliataG: 0,
+      milkKg: 0,
       fillingNoLossG: 0,
       fillingWithLossG: 0,
       bowls: 0,
@@ -766,7 +769,8 @@
         ${metric('Тазов всего', `${data.totals.bowls}`, 'soft-blue')}
         ${metric('Страчителла всего', `${fmt(data.totals.stracciatellaG)} г`, 'soft-green')}
         ${metric('Сливки всего', `${fmt(data.totals.creamG)} г`, 'soft-orange')}
-        ${metric('Кальятта расплав', `${fmt(data.totals.cagliataG)} г`, 'soft-green')}
+        ${metric('Молоко', `${fmt(data.totals.milkKg)} кг`, 'soft-blue')}
+        ${metric('Кальятта расплав для мешочков', `${fmt(data.totals.cagliataG)} г`, 'soft-green')}
         ${metric('ОТК всего', `+${fmt(data.totals.extraPieces)} шт.`, 'soft-blue')}
         ${data.totals.additionalPieces > 0 ? metric('Доп. штуки', `+${fmt(data.totals.additionalPieces)} шт.`, 'soft-blue') : ''}
         ${data.totals.salsaG > 0 ? metric('Сальса трюфель всего', `${fmt(data.totals.salsaG)} г`, 'soft-orange') : ''}
@@ -825,7 +829,8 @@
     sb += `Штук всего с ОТК: ${fmt(data.totals.totalPieces)} шт.\n`;
     sb += `ОТК всего: +${fmt(data.totals.extraPieces)} шт.\n`;
     if (data.totals.additionalPieces > 0) sb += `Дополнительные штуки всего: +${fmt(data.totals.additionalPieces)} шт.\n`;
-    sb += `Кальятта расплав всего: ${fmt(data.totals.cagliataG)} г\n`;
+    sb += `Кальятта расплав для мешочков: ${fmt(data.totals.cagliataG)} г\n`;
+    sb += `Молоко: ${fmt(data.totals.milkKg)} кг\n`;
     sb += `Начинка всего без потерь: ${fmt(data.totals.fillingNoLossG)} г\n`;
     sb += `Начинка с потерями всего: ${fmt(data.totals.fillingWithLossG)} г\n`;
     sb += `Тазов всего: ${data.totals.bowls}\n`;
@@ -1696,16 +1701,12 @@
   }
 
   function salsaPerBowlForFilling(fillingPerBowlG) {
-    // v1.13.31: шкала сальсы на таз по наполнению одного таза.
-    // 900–1099 → 10 г; 1100–1299 → 12 г; 1300–1499 → 14 г;
-    // 1500–1699 → 16 г; 1700–1899 → 18 г; 1900–2100 → 20 г.
-    // Значения ниже 900 г остаются на минимуме 10 г; выше 2100 г не возникают при стандартном лимите таза.
-    if (fillingPerBowlG >= 1900) return 20;
-    if (fillingPerBowlG >= 1700) return 18;
-    if (fillingPerBowlG >= 1500) return 16;
-    if (fillingPerBowlG >= 1300) return 14;
-    if (fillingPerBowlG >= 1100) return 12;
-    return 10;
+    // v1.13.34: сальса на таз растёт на 2 г каждые 200 г наполнения.
+    // 900–1099 → 10 г; 1100–1299 → 12 г; ...;
+    // 2100–2299 → 22 г; 2300–2499 → 24 г; 2900–3099 → 30 г и далее по той же последовательности.
+    const filling = Number(fillingPerBowlG) || 0;
+    if (filling < 900) return 10;
+    return 10 + Math.floor((filling - 900) / 200) * 2;
   }
 
   function getCreamSubtraction(stracciatellaG) {
