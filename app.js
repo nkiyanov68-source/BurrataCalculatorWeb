@@ -472,8 +472,8 @@
 
   function addStartMessages() {
     $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля. Можно заполнить только один вид. Партии можно оставить пустыми — они подставятся автоматически. Данные сразу переносятся в разделы Классика/Трюфель, а после расчёта обновляются их итоги и раздел Чан. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
-    $('burrataResults').innerHTML = startCard('Введите заявку классики в кг. Общее количество штук всегда считается по заявке × 8. Партии можно не указывать. Коробки по партиям, например 20/41/41/41, нужны только для распределения рассчитанных штук; если их вместимости не хватает, появится ошибка. ОТК в коробки не входит.');
-    $('truffleResults').innerHTML = startCard('Введите заявку трюфельной классики. Общее количество штук считается по заявке × 8. Коробки по партиям нужны только для распределения рассчитанных штук; если их вместимости не хватает, появится ошибка. По умолчанию: 95 г начинки на штуку, 2100 г на таз.');
+    $('burrataResults').innerHTML = startCard('Введите заявку классики в кг. Общее количество штук всегда считается по заявке × 8. Партии можно не указывать. Коробки по партиям, например 20/41/41/41, нужны только для распределения рассчитанных штук; если их вместимость не совпадает с количеством по заявке, появится ошибка. ОТК в коробки не входит.');
+    $('truffleResults').innerHTML = startCard('Введите заявку трюфельной классики. Общее количество штук считается по заявке × 8. Коробки по партиям нужны только для распределения рассчитанных штук; если их вместимость не совпадает с количеством по заявке, появится ошибка. По умолчанию: 95 г начинки на штуку, 2100 г на таз.');
     $('chanResults').innerHTML = startCard('Заполните первый раздел “Начинка” и нажмите “Рассчитать начинку” — чан пересчитается автоматически.');
   }
 
@@ -921,8 +921,12 @@
       const requiredBasePieces = piecesRound(requestKg * settings.requestToPieces);
       const piecesPerBox = settings.piecesPerBox > 0 ? settings.piecesPerBox : 6;
       const boxCapacityPieces = piecesRound(sumArray(boxesByParty) * piecesPerBox);
-      if (boxCapacityPieces < requiredBasePieces) {
-        showError(results, `По заявке ${fmt(requestKg)} кг должно быть ${fmt(requiredBasePieces)} шт. без ОТК (${fmt(requestKg)} × ${formatRaw(settings.requestToPieces)}). Введённые коробки вмещают только ${fmt(boxCapacityPieces)} шт. Увеличьте количество коробок. Коробки нужны только для распределения штук по партиям.`);
+      if (boxCapacityPieces !== requiredBasePieces) {
+        const difference = boxCapacityPieces - requiredBasePieces;
+        const directionText = difference < 0
+          ? `не хватает ${fmt(Math.abs(difference))} шт.`
+          : `лишних ${fmt(difference)} шт.`;
+        showError(results, `Ошибка в коробках: по заявке ${fmt(requestKg)} кг должно быть ровно ${fmt(requiredBasePieces)} шт. без ОТК (${fmt(requestKg)} × ${formatRaw(settings.requestToPieces)}), а введённые коробки дают ${fmt(boxCapacityPieces)} шт. — ${directionText} Исправьте коробки. Они нужны только для точного распределения штук по партиям и не должны менять количество по заявке.`);
         copyBtn.classList.add('hidden');
         return;
       }
@@ -1722,7 +1726,7 @@
   }
 
   function salsaPerBowlForFilling(fillingPerBowlG) {
-    // v1.13.39: сальса на таз растёт на 2 г каждые 200 г наполнения.
+    // v1.13.40: сальса на таз растёт на 2 г каждые 200 г наполнения.
     // 900–1099 → 10 г; 1100–1299 → 12 г; ...;
     // 2100–2299 → 22 г; 2300–2499 → 24 г; 2900–3099 → 30 г и далее по той же последовательности.
     const filling = Number(fillingPerBowlG) || 0;
