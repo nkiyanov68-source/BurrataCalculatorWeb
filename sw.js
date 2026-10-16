@@ -1,10 +1,10 @@
-const CACHE_NAME = 'burrata-calculator-web-v1-13-38';
+const CACHE_NAME = 'burrata-calculator-web-v1-13-39';
 const CACHE_PREFIX = 'burrata-calculator-web-';
 const ASSETS = [
   './index.html',
-  './styles.css?v=11338',
-  './app.js?v=11338',
-  './manifest.webmanifest?v=11338',
+  './styles.css?v=11339',
+  './app.js?v=11339',
+  './manifest.webmanifest?v=11339',
   './icons/icon-72.png',
   './icons/icon-96.png',
   './icons/icon-128.png',

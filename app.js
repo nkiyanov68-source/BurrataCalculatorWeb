@@ -351,8 +351,7 @@
     }
 
     saveSettings(settings);
-    calculateChan({ keepCurrentTab: true });
-    calculateProductSectionsFromFilling();
+    refreshFillingAfterChanAcidChange();
     buildChanAcidSettingsFields(lastChanCount);
     const commonInput = $('chan-acid-all');
     if (commonInput) commonInput.value = formatRaw(value);
@@ -374,8 +373,7 @@
       settings[`chanAcidPerMilk${i}`] = value;
     }
     saveSettings(settings);
-    calculateChan({ keepCurrentTab: true });
-    calculateProductSectionsFromFilling();
+    refreshFillingAfterChanAcidChange();
     buildChanAcidSettingsFields(lastChanCount);
     toast('Коэффициенты чанов сохранены');
   }
@@ -384,8 +382,7 @@
     const count = Math.max(1, Math.min(20, lastChanCount || 1));
     for (let i = 1; i <= count; i++) settings[`chanAcidPerMilk${i}`] = 1.34;
     saveSettings(settings);
-    calculateChan({ keepCurrentTab: true });
-    calculateProductSectionsFromFilling();
+    refreshFillingAfterChanAcidChange();
     buildChanAcidSettingsFields(lastChanCount);
     toast('Коэффициенты чанов сброшены');
   }
@@ -475,8 +472,8 @@
 
   function addStartMessages() {
     $('fillingResults').innerHTML = startCard('Введите кг классики и/или трюфеля. Можно заполнить только один вид. Партии можно оставить пустыми — они подставятся автоматически. Данные сразу переносятся в разделы Классика/Трюфель, а после расчёта обновляются их итоги и раздел Чан. Соли здесь нет. Дополнительные настройки спрятаны в плюсик.');
-    $('burrataResults').innerHTML = startCard('Введите заявку классики в кг. Партии можно не указывать — они подставятся автоматически. Также можно указать коробки по партиям, например 20/41/41/41. В одной коробке по умолчанию 6 штук, ОТК добавляется отдельно и в коробки не входит.');
-    $('truffleResults').innerHTML = startCard('Введите заявку трюфельной классики. Можно указать коробки по партиям, например 22. По умолчанию: 95 г начинки на штуку, 2100 г на таз.');
+    $('burrataResults').innerHTML = startCard('Введите заявку классики в кг. Общее количество штук всегда считается по заявке × 8. Партии можно не указывать. Коробки по партиям, например 20/41/41/41, нужны только для распределения рассчитанных штук; если их вместимости не хватает, появится ошибка. ОТК в коробки не входит.');
+    $('truffleResults').innerHTML = startCard('Введите заявку трюфельной классики. Общее количество штук считается по заявке × 8. Коробки по партиям нужны только для распределения рассчитанных штук; если их вместимости не хватает, появится ошибка. По умолчанию: 95 г начинки на штуку, 2100 г на таз.');
     $('chanResults').innerHTML = startCard('Заполните первый раздел “Начинка” и нажмите “Рассчитать начинку” — чан пересчитается автоматически.');
   }
 
@@ -637,6 +634,14 @@
 
     // Классика/Трюфель используют коэффициент именно своего чана.
     calculateProductSectionsFromFilling();
+  }
+
+  // После изменения лимонки в разделе "Чан" сразу пересчитываем
+  // главные результаты "Начинки", но оставляем пользователя на текущей вкладке.
+  function refreshFillingAfterChanAcidChange() {
+    const previousTab = currentTab;
+    calculateFilling();
+    currentTab = previousTab;
   }
 
   function readFillingProduct(isTruffle, results, copyBtn, options = {}) {
@@ -889,13 +894,15 @@
     const rawBoxes = String(boxesInput.value || '').trim();
     const rawExtraPieces = String(extraPiecesInput && extraPiecesInput.value || '').trim().replace(',', '.');
 
-    if (!raw && !rawBoxes) {
-      showError(results, 'Введите заявку в кг или коробки по партиям. Пример коробок: 20/41/41/41.');
+    if (!raw) {
+      showError(results, rawBoxes
+        ? 'Введите заявку в кг. Коробки используются только для распределения рассчитанных штук по партиям.'
+        : 'Введите заявку в кг. Общее количество штук считается по формуле заявка × 8.');
       copyBtn.classList.add('hidden');
       return;
     }
 
-    let requestKg = raw ? Number(raw) : Number.NaN;
+    let requestKg = Number(raw);
     if (raw && !Number.isFinite(requestKg)) {
       showError(results, 'Заявка должна быть числом. Пример: 45 или 45,5.');
       copyBtn.classList.add('hidden');
@@ -909,6 +916,17 @@
 
     const boxesByParty = parseBoxesByParty(rawBoxes, results, copyBtn);
     if (boxesByParty === null) return;
+
+    if (boxesByParty.length) {
+      const requiredBasePieces = piecesRound(requestKg * settings.requestToPieces);
+      const piecesPerBox = settings.piecesPerBox > 0 ? settings.piecesPerBox : 6;
+      const boxCapacityPieces = piecesRound(sumArray(boxesByParty) * piecesPerBox);
+      if (boxCapacityPieces < requiredBasePieces) {
+        showError(results, `По заявке ${fmt(requestKg)} кг должно быть ${fmt(requiredBasePieces)} шт. без ОТК (${fmt(requestKg)} × ${formatRaw(settings.requestToPieces)}). Введённые коробки вмещают только ${fmt(boxCapacityPieces)} шт. Увеличьте количество коробок. Коробки нужны только для распределения штук по партиям.`);
+        copyBtn.classList.add('hidden');
+        return;
+      }
+    }
 
     const manualParties = parseManualParties(rawManualParties, results, copyBtn);
     if (manualParties === null) return;
@@ -1183,17 +1201,18 @@
     let boxesTotal = 0;
     let normalizedBoxes = null;
 
+    const basePiecesFromKg = piecesRound(requestKg * settings.requestToPieces);
+
     if (boxesByParty && boxesByParty.length) {
       normalizedBoxes = boxesByParty;
       parties = normalizedBoxes.length;
       boxesTotal = normalizedBoxes.reduce((sum, v) => sum + v, 0);
-      basePiecesByParty = normalizedBoxes.map((boxes) => piecesRound(boxes * piecesPerBox));
-      if (!Number.isFinite(requestKg) || requestKg <= 0) {
-        requestKg = basePiecesByParty.reduce((sum, v) => sum + v, 0) / settings.requestToPieces;
-      }
+      // Коробки определяют только количество партий и пропорцию распределения.
+      // Общее число штук всегда остаётся равным заявка × 8 (или текущему requestToPieces).
+      const boxCapacities = normalizedBoxes.map((boxes) => piecesRound(boxes * piecesPerBox));
+      basePiecesByParty = distributePiecesByBoxCapacity(basePiecesFromKg, boxCapacities);
     } else {
       parties = manualParties || (isTruffle ? getTruffleParties(requestKg) : getParties(requestKg));
-      const basePiecesFromKg = piecesRound(requestKg * settings.requestToPieces);
       basePiecesByParty = splitWholeKgToParts(basePiecesFromKg, parties);
     }
 
@@ -1225,6 +1244,23 @@
       boxesByParty: normalizedBoxes,
       boxesTotal
     };
+  }
+
+  // Распределение по введённым коробкам: каждая партия получает не больше
+  // своей вместимости. Если коробок чуть больше, чем нужно по заявке,
+  // лишняя вместимость снимается с последних партий, а общее число штук
+  // остаётся строго равным заявка × 8.
+  function distributePiecesByBoxCapacity(totalPieces, capacities) {
+    const result = capacities.map((v) => Math.max(0, piecesRound(v)));
+    let excess = sumArray(result) - totalPieces;
+    const minPerParty = totalPieces >= result.length ? 1 : 0;
+    for (let i = result.length - 1; i >= 0 && excess > 0; i--) {
+      const reducible = Math.max(0, result[i] - minPerParty);
+      const reduceBy = Math.min(reducible, excess);
+      result[i] -= reduceBy;
+      excess -= reduceBy;
+    }
+    return result;
   }
 
   function splitWholeByWeights(totalKg, weights) {
@@ -1686,7 +1722,7 @@
   }
 
   function salsaPerBowlForFilling(fillingPerBowlG) {
-    // v1.13.38: сальса на таз растёт на 2 г каждые 200 г наполнения.
+    // v1.13.39: сальса на таз растёт на 2 г каждые 200 г наполнения.
     // 900–1099 → 10 г; 1100–1299 → 12 г; ...;
     // 2100–2299 → 22 г; 2300–2499 → 24 г; 2900–3099 → 30 г и далее по той же последовательности.
     const filling = Number(fillingPerBowlG) || 0;
@@ -1749,7 +1785,8 @@
       sb += `Коробки по партиям: ${d.boxesByParty.map((v) => fmt(v)).join('/')}\n`;
       sb += `Всего коробок: ${fmt(d.boxesTotal)}\n`;
       sb += `В одной коробке: ${formatRaw(settings.piecesPerBox)} шт.\n`;
-      sb += `Штук в коробках: ${fmt(d.basePieces)} шт.\n`;
+      sb += `Вместимость введённых коробок: ${fmt(d.boxesTotal * settings.piecesPerBox)} шт.\n`;
+      sb += `Штук по заявке × ${formatRaw(settings.requestToPieces)}: ${fmt(d.basePieces)} шт.\n`;
     } else {
       sb += `Заявка × ${formatRaw(settings.requestToPieces)}: ${fmt(d.basePieces)} шт.\n`;
       if (d.manualPartiesUsed) sb += 'Количество партий задано вручную\n';

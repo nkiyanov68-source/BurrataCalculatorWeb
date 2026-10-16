@@ -10,11 +10,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Burrata" />
-  <title>Burrata Calculator v1.13.38</title>
-  <link rel="manifest" href="manifest.webmanifest?v=11338" />
+  <title>Burrata Calculator v1.13.39</title>
+  <link rel="manifest" href="manifest.webmanifest?v=11339" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=11338" />
+  <link rel="stylesheet" href="styles.css?v=11339" />
 </head>
 <body>
   <div class="app-shell">
@@ -23,7 +23,7 @@
         <img src="icons/icon-72.png" alt="" class="brand-icon" />
         <div>
           <h1>Burrata Calculator</h1>
-          <p>Веб-версия v1.13.38</p>
+          <p>Веб-версия v1.13.39</p>
         </div>
       </div>
     </header>
@@ -139,11 +139,11 @@
             <p class="hint">Кг автоматически берутся из первого раздела “Начинка”, но здесь можно изменить вручную.</p>
             <input id="burrataKg" class="main-input" inputmode="decimal" placeholder="Например: 107,25" />
             <label class="field-label top-space" for="burrataManualParties">Количество партий вручную</label>
-            <p class="hint">Партии можно не указывать — тогда они считаются автоматически. Можно изменить вручную. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
+            <p class="hint">Партии можно не указывать — тогда они считаются автоматически. Коробки по партиям задают число партий и распределение штук, но не меняют общее количество: оно всегда считается по заявке × 8.</p>
             <input id="burrataManualParties" class="main-input" inputmode="numeric" placeholder="Например: 4 или 5" />
           </div>
           <label class="field-label top-space" for="burrataBoxesByParty">Коробки по партиям</label>
-          <p class="hint">Пример: 20/41/41/41. В одной коробке 6 штук, ОТК в коробки не входит.</p>
+          <p class="hint">Пример: 20/41/41/41. В одной коробке 6 штук. Если коробок недостаточно для штук по заявке, расчёт покажет ошибку. ОТК в коробки не входит.</p>
           <input id="burrataBoxesByParty" class="main-input" inputmode="text" placeholder="Например: 20/41/41/41" />
           <button class="secondary-btn optional-toggle" id="toggleBurrataExtra">+ Дополнительно</button>
           <div class="optional-panel hidden" id="burrataExtraPanel">
@@ -184,11 +184,11 @@
             <p class="hint">Кг автоматически берутся из первого раздела “Начинка”, но здесь можно изменить вручную.</p>
             <input id="truffleKg" class="main-input" inputmode="decimal" placeholder="Например: 16,5" />
             <label class="field-label top-space" for="truffleManualParties">Количество партий вручную</label>
-            <p class="hint">Партии можно не указывать — тогда они считаются автоматически. Можно изменить вручную. Если заполнить коробки по партиям, число партий берётся из коробок.</p>
+            <p class="hint">Партии можно не указывать — тогда они считаются автоматически. Коробки по партиям задают число партий и распределение штук, но не меняют общее количество: оно всегда считается по заявке × 8.</p>
             <input id="truffleManualParties" class="main-input" inputmode="numeric" placeholder="Например: 1 или 2" />
           </div>
           <label class="field-label top-space" for="truffleBoxesByParty">Коробки по партиям</label>
-          <p class="hint">Пример: 22. В одной коробке 6 штук, ОТК в коробки не входит.</p>
+          <p class="hint">Пример: 22. В одной коробке 6 штук. Если коробок недостаточно для штук по заявке, расчёт покажет ошибку. ОТК в коробки не входит.</p>
           <input id="truffleBoxesByParty" class="main-input" inputmode="text" placeholder="Например: 22" />
           <button class="secondary-btn optional-toggle" id="toggleTruffleExtra">+ Дополнительно</button>
           <div class="optional-panel hidden" id="truffleExtraPanel">
@@ -207,6 +207,6 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script src="app.js?v=11338"></script>
+  <script src="app.js?v=11339"></script>
 </body>
 </html>
