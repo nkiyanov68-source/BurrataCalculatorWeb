@@ -619,15 +619,23 @@
       salsaG: prodRound(products.reduce((sum, p) => sum + p.salsaG, 0))
     };
 
+    // Сначала строим распределение по чанам: от него берутся общие
+    // лимонная кислота и фермент для главных результатов начинки.
+    const chanCalculated = calculateChan({ keepCurrentTab: true });
+    totals.totalAcid = chanCalculated
+      ? prodRound(lastChanLoads.reduce((sum, load) => sum + (Number(load.acidG) || 0), 0))
+      : 0;
+    totals.totalRennet = chanCalculated
+      ? prodRound(lastChanLoads.reduce((sum, load) => sum + (Number(load.rennetG) || 0), 0))
+      : 0;
+
     const data = { classic, truffle, products, totals };
     results.innerHTML = renderFillingResults(data);
     lastFillingText = buildPlainFillingResult(data);
     copyBtn.classList.remove('hidden');
     saveResultState('filling', results.innerHTML, lastFillingText);
 
-    // Сначала строим распределение партий по чанам.
-    // Затем Классика/Трюфель используют коэффициент именно своего чана.
-    calculateChan({ keepCurrentTab: true });
+    // Классика/Трюфель используют коэффициент именно своего чана.
     calculateProductSectionsFromFilling();
   }
 
@@ -774,13 +782,14 @@
         ${metric('Сливки всего', `${fmt(data.totals.creamG)} г`, 'soft-orange')}
         ${metric('Молоко', `${fmt(data.totals.milkKg)} кг`, 'soft-blue')}
         ${metric('Кальятта для мешочков', `${fmt(data.totals.cagliataG)} г`, 'soft-green')}
+        ${metric('Лимонка всего', `${fmt(data.totals.totalAcid)} г`, 'soft-blue')}
+        ${metric('Фермент всего', `${fmt(data.totals.totalRennet)} г`, 'soft-blue')}
         ${metric('ОТК всего', `+${fmt(data.totals.extraPieces)} шт.`, 'soft-blue')}
         ${data.totals.additionalPieces > 0 ? metric('Доп. штуки', `+${fmt(data.totals.additionalPieces)} шт.`, 'soft-blue') : ''}
         ${data.totals.salsaG > 0 ? metric('Сальса трюфель всего', `${fmt(data.totals.salsaG)} г`, 'soft-orange') : ''}
       </div>
       <div class="section-title">По партиям</div>
       ${partyCards}
-      <div class="card note-card">Эта главная страница считает начинку и автоматически обновляет раздел “Чан”. Для трюфеля сальса в карточке партии указана на 1 таз, рядом выводится сальса всего. Коробки не учитываются, соль не выводится. ОТК, дополнительные штуки и максимум общего количества в 1 тазу находятся в “+ Настройки начинки”.</div>
     `;
   }
 
@@ -833,6 +842,8 @@
     sb += `Тазов всего: ${data.totals.bowls}\n`;
     sb += `Страчителла всего: ${fmt(data.totals.stracciatellaG)} г\n`;
     sb += `Сливки всего: ${fmt(data.totals.creamG)} г\n`;
+    sb += `Лимонка всего: ${fmt(data.totals.totalAcid)} г\n`;
+    sb += `Фермент всего: ${fmt(data.totals.totalRennet)} г\n`;
     if (data.totals.salsaG > 0) sb += `Сальса трюфель всего: ${fmt(data.totals.salsaG)} г\n`;
     sb += '\n';
     data.products.forEach((product) => {
@@ -1063,7 +1074,6 @@
       </div>
       <div class="section-title">Подробно по партиям</div>
       ${partyCards}
-      <div class="card note-card">Примечание: заявка в кг показывается как исходная. Штуки, молоко, начинка и главные результаты считаются с ОТК. Если заполнены коробки по партиям, количество партий берётся по числу значений, а ОТК добавляется отдельно и в коробки не входит. Кальятта для мешочков считается по ${formatRaw(settings.cagliataPerPieceG)} г на 1 шт. Соль в сливки считается по ${formatRaw(settings.creamSaltPerKgG)} г на 1 кг сливок. Начинка в 1 тазу считается как начинка с потерями / количество тазов. Молоко по партиям распределяется от общего количества с ОТК так, чтобы сумма партий точно совпадала с общим молоком. Коэффициент лимонной кислоты берётся из того чана, к которому распределена партия.</div>
     `;
   }
 
@@ -1433,24 +1443,6 @@
     const boxesLine = d.boxesTotal > 0 ? ` • Коробки: ${fmt(d.boxesTotal)} кор.` : '';
     return `
       ${headerCard('Итог по чану', `${d.chanCount} чан(ов) • ${d.parties} парт. • ${fmt(d.totalPieces)} шт.${boxesLine}`, `Молоко всего: ${fmt(d.totalMilkKg)} кг • Литры всего: ${fmt(d.totalLiters)} л`)}
-
-      <details class="collapsible-section chan-collapsible">
-        <summary class="collapsible-summary"><span>Главные результаты</span></summary>
-        <div class="collapsible-body">
-          <div class="metrics-grid">
-            ${metric('Заявка всего', `${fmt(d.totalRequestKg)} кг`, 'soft-green')}
-            ${metric('Штук всего с ОТК', `${fmt(d.totalPieces)} шт.`, 'soft-green')}
-            ${d.additionalPieces > 0 ? metric('Доп. штуки всего', `+${fmt(d.additionalPieces)} шт.`, 'soft-blue') : ''}
-            ${d.boxesTotal > 0 ? metric('Коробки всего', `${fmt(d.boxesTotal)} кор.`, 'soft-orange') : ''}
-            ${metric('Молоко всего', `${fmt(d.totalMilkKg)} кг`, 'soft-blue')}
-            ${metric('Литры всего', `${fmt(d.totalLiters)} л`, 'soft-green')}
-            ${metric('Чанов нужно', `${d.chanCount}`, 'soft-orange')}
-            ${metric('Лимонка всего', `${fmt(d.totalAcid)} г`, 'soft-blue')}
-            ${metric('Фермент всего', `${fmt(d.totalRennet)} г`, 'soft-blue')}
-          </div>
-        </div>
-      </details>
-
       ${d.chanLoads.map((load) => `
         <div class="card">
           <h3 class="chan-title">Чан ${load.index}</h3>
@@ -1694,7 +1686,7 @@
   }
 
   function salsaPerBowlForFilling(fillingPerBowlG) {
-    // v1.13.36: сальса на таз растёт на 2 г каждые 200 г наполнения.
+    // v1.13.38: сальса на таз растёт на 2 г каждые 200 г наполнения.
     // 900–1099 → 10 г; 1100–1299 → 12 г; ...;
     // 2100–2299 → 22 г; 2300–2499 → 24 г; 2900–3099 → 30 г и далее по той же последовательности.
     const filling = Number(fillingPerBowlG) || 0;
