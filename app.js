@@ -600,7 +600,7 @@
 
     const products = [classic, truffle].filter((p) => p.active);
     const totals = {
-      requestKg: prodRound(products.reduce((sum, p) => sum + p.requestKg, 0)),
+      requestKg: requestRound(products.reduce((sum, p) => sum + p.requestKg, 0)),
       parties: products.reduce((sum, p) => sum + p.parties, 0),
       basePieces: products.reduce((sum, p) => sum + p.basePieces, 0),
       extraPieces: products.reduce((sum, p) => sum + p.extraPieces, 0),
@@ -1675,6 +1675,7 @@
     return fraction + 0.0000001 >= ROUNDING_THRESHOLD ? Math.ceil(value) : floor;
   }
 
+  function requestRound(value) { return Math.round(value * 1000) / 1000; }
   function prodRound(value) { return piecesRound(value); }
   function milkRound(value) { return piecesRound(value); }
 
@@ -1726,7 +1727,7 @@
   }
 
   function salsaPerBowlForFilling(fillingPerBowlG) {
-    // v1.13.40: сальса на таз растёт на 2 г каждые 200 г наполнения.
+    // v1.13.41: сальса на таз растёт на 2 г каждые 200 г наполнения.
     // 900–1099 → 10 г; 1100–1299 → 12 г; ...;
     // 2100–2299 → 22 г; 2300–2499 → 24 г; 2900–3099 → 30 г и далее по той же последовательности.
     const filling = Number(fillingPerBowlG) || 0;
